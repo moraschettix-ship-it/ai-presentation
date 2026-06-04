@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IA & Outils — Équipe Crédit MeilleurTaux</title>
+  <style>
+    :root {
+      --bg: #1a0f0a;
+      --surface: #231410;
+      --card: #2c1a13;
+      --border: rgba(255,255,255,0.07);
+      --accent: #e8622a;
+      --accent-light: #ff8550;
+      --accent2: #f0a070;
+      --accent3: #d44020;
+      --accent4: #43d9a2;
+      --text: #f5ede8;
+      --muted: #b09080;
+      --glow: rgba(232,98,42,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 15% 10%, rgba(232,98,42,0.14) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 50% at 85% 80%, rgba(240,160,112,0.1) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 40% at 60% 30%, rgba(212,64,32,0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(26,15,10,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(232,98,42,0.2);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 60px;
+    }
+    nav .logo {
+      font-weight: 800;
+      font-size: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+    nav a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 100px 2rem 80px;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(232,98,42,0.15);
+      border: 1px solid rgba(232,98,42,0.4);
+      color: var(--accent-light);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+      background: linear-gradient(135deg, #fff 20%, var(--accent-light) 55%, var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      color: #fff;
+      font-weight: 700;
+      padding: 13px 30px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      box-shadow: 0 0 40px var(--glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 0 60px var(--glow); }
+
+    /* ── SECTIONS ── */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 60px 2rem;
+    }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      margin-bottom: 0.6rem;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      font-size: 1rem;
+    }
+
+    /* ── GRID CARDS ── */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .card:hover { border-color: rgba(232,98,42,0.4); transform: translateY(-3px); }
+    .card:hover::before { opacity: 1; }
+
+    .card-icon { font-size: 1.8rem; margin-bottom: 0.8rem; display: block; }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff; }
+    .card p, .card li { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+    .card ul { list-style: none; }
+    .card li { padding: 3px 0; }
+    .card li::before { content: '→ '; color: var(--accent-light); font-weight: 700; }
+
+    /* ── DO / DON'T ── */
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    @media (max-width: 600px) { .do-dont { grid-template-columns: 1fr; } }
+    .do::before { background: var(--accent4) !important; opacity: 1 !important; }
+    .dont::before { background: #e05555 !important; opacity: 1 !important; }
+    .do li::before { color: var(--accent4); content: '✓ '; }
+    .dont li::before { color: #e05555; content: '✗ '; }
+
+    /* ── TIPS ── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 1.2rem;
+    }
+    .tip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.4rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .tip-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .tip-card:hover { border-color: rgba(232,98,42,0.4); transform: translateY(-3px); }
+    .tip-label {
+      display: inline-block;
+      background: rgba(232,98,42,0.15);
+      color: var(--accent-light);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 0.8rem;
+    }
+    .tip-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+    .tip-card p { font-size: 0.86rem; color: var(--muted); line-height: 1.65; margin-bottom: 0.8rem; }
+    .tip-example {
+      background: rgba(0,0,0,0.35);
+      border-left: 2px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.82rem;
+      color: #f0c8a8;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      line-height: 1.6;
+    }
+    .tip-example .vs { color: var(--muted); font-style: italic; display: block; margin: 0.3rem 0; font-family: inherit; }
+
+    /* ── STEPS ── */
+    .steps { display: flex; flex-direction: column; }
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      min-width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #fff;
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .step-content h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #fff; }
+    .step-content p { font-size: 0.87rem; color: var(--muted); }
+    .step-content code {
+      background: rgba(232,98,42,0.15);
+      color: var(--accent-light);
+      padding: 1px 8px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    /* ── PROMPT EXAMPLES ── */
+    .prompt-box {
+      background: #0f0806;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .prompt-box .tag {
+      position: absolute;
+      top: 12px; right: 12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(232,98,42,0.2);
+      color: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .prompt-box p { font-size: 0.88rem; color: #f0c8a8; font-family: 'Fira Code', monospace; }
+    .prompt-box .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; margin-bottom: 0.5rem; }
+
+    /* ── MCP TABLE ── */
+    .mcp-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .mcp-table th {
+      background: rgba(232,98,42,0.1);
+      color: var(--accent-light);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .mcp-table td {
+      padding: 10px 14px;
+      font-size: 0.86rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+    }
+    .mcp-table tr:last-child td { border-bottom: none; }
+    .mcp-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 0.72rem; font-weight: 600; }
+    .badge-orange { background: rgba(232,98,42,0.2); color: var(--accent-light); }
+    .badge-green { background: rgba(67,217,162,0.2); color: var(--accent4); }
+
+    /* ── CALLOUT ── */
+    .callout {
+      background: rgba(232,98,42,0.07);
+      border: 1px solid rgba(232,98,42,0.22);
+      border-radius: 14px;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin: 1.5rem 0;
+    }
+    .callout .ico { font-size: 1.4rem; margin-top: 2px; }
+    .callout p { font-size: 0.9rem; color: var(--text); }
+    .callout strong { color: var(--accent-light); }
+    .callout a { color: var(--accent2); }
+    .callout-warn { background: rgba(224,85,85,0.07); border-color: rgba(224,85,85,0.22); }
+    .callout-success { background: rgba(67,217,162,0.06); border-color: rgba(67,217,162,0.2); }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
+
+    /* ── FOOTER ── */
+    footer { text-align: center; padding: 3rem 2rem; color: var(--muted); font-size: 0.82rem; }
+    footer a { color: var(--accent-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    html { scroll-behavior: smooth; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(232,98,42,0.4); border-radius: 10px; }
+
+    @media (max-width: 700px) {
+      nav { gap: 1rem; padding: 0 1rem; }
+      nav a:not(:first-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🏠 Équipe Crédit · MeilleurTaux</span>
+  <a href="#pourquoi">Pourquoi l'IA</a>
+  <a href="#tips">Tips & Tricks</a>
+  <a href="#bonnes-pratiques">Bonnes pratiques</a>
+  <a href="#vscode">VS Code & Copilot</a>
+  <a href="#mcp">MCP Jira</a>
+  <a href="#acces">Accès</a>
+  <a href="#ressources">Ressources</a>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-badge">✦ Présentation équipe · Juin 2026</span>
+  <h1>L'IA au quotidien<br>dans l'équipe Crédit</h1>
+  <p>Tout ce qu'il faut savoir pour utiliser l'IA efficacement chez MeilleurTaux : outils, bonnes pratiques, VS Code Copilot, MCP Jira et les tips qui changent tout.</p>
+  <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank" class="hero-cta">
+    📚 Product Management Toolbox →
+  </a>
+</div>
+
+<!-- ── POURQUOI L'IA ── -->
+<section id="pourquoi">
+  <div class="section-label">🚀 Contexte</div>
+  <h2>Pourquoi intégrer l'IA maintenant ?</h2>
+  <p class="section-sub">L'IA générative n'est plus un gadget — c'est un levier de productivité concret pour l'équipe crédit.</p>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <h3>Vitesse x3 à x10</h3>
+      <p>Specs, résumés de réunions, tickets Jira, réponses emails : des tâches qui prenaient 30 min se font en 3 min.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧠</span>
+      <h3>Augmentation cognitive</h3>
+      <p>L'IA ne remplace pas votre jugement — elle l'amplifie. Elle gère le volume, vous gardez la direction.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔁</span>
+      <h3>Automatisation des rituels</h3>
+      <p>Comptes-rendus, backlog grooming, mise à jour de tickets, reporting… tout ce qui est répétitif peut être délégué.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">✍️</span>
+      <h3>Rédaction & Communication</h3>
+      <p>Mails, PRDs, user stories, présentations : l'IA s'adapte à votre ton et contexte métier crédit.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔍</span>
+      <h3>Analyse & Synthèse</h3>
+      <p>Résumer des interviews utilisateurs, analyser des feedbacks, structurer une étude de marché en quelques secondes.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤝</span>
+      <h3>Collaboration Dev/PM</h3>
+      <p>GitHub Copilot facilite la compréhension mutuelle entre PMs et devs. Les specs deviennent plus précises.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── TIPS & TRICKS ── -->
+<section id="tips">
+  <div class="section-label">🔥 Tips & Tricks</div>
+  <h2>Les astuces qui changent tout</h2>
+  <p class="section-sub">Techniques concrètes testées par des milliers d'utilisateurs — du plus simple au plus avancé.</p>
+
+  <div class="tips-grid">
+
+    <div class="tip-card">
+      <span class="tip-label">🦴 Classique</span>
+      <h3>Le Caveman Prompting</h3>
+      <p>Pas besoin de phrases élaborées. L'IA comprend très bien les commandes directes et minimalistes. Court = souvent meilleur. Comme un homme des cavernes : droit au but.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Pourriez-vous, si vous le voulez bien, rédiger pour moi un résumé de cette réunion en format structuré..."</span>
+        <span>✅ "Résume. 5 points. Ton pro. Max 80 mots."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🇬🇧 Astuce $$$</span>
+      <h3>Prompter en anglais = meilleur + moins cher</h3>
+      <p>Les LLMs sont entraînés majoritairement en anglais. Prompter en anglais améliore la qualité des réponses <strong>et</strong> consomme moins de tokens. Moins de tokens = moins cher pour l'entreprise. Vous pouvez quand même demander une réponse en français à la fin.</p>
+      <div class="tip-example">
+        <span class="vs">Prompt FR → réponse correcte, plus de tokens</span>
+        <span>✅ Prompt EN + "Answer in French" → meilleure qualité, ~20-30% moins de tokens</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎭 Role Prompting</span>
+      <h3>Donner un rôle précis à l'IA</h3>
+      <p>L'IA performe bien mieux quand on lui assigne une expertise précise dès le début. C'est la technique la plus simple et la plus impactante.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Écris une user story sur le login"</span>
+        <span>✅ "You are a senior PM at a French mortgage platform. Write a user story for..."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🔢 Structure</span>
+      <h3>Numéroter ses contraintes</h3>
+      <p>Pour des demandes complexes, listez vos contraintes en numéros. L'IA respecte beaucoup mieux une liste ordonnée qu'un paragraphe dense.</p>
+      <div class="tip-example">
+        <span>1. Réponse en français<br>2. Format tableau Jira<br>3. Max 5 lignes<br>4. Ton direct, sans formules de politesse</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🪞 Chain of Thought</span>
+      <h3>"Think step by step"</h3>
+      <p>Ajouter cette phrase améliore drastiquement la qualité sur les sujets complexes. L'IA raisonne mieux quand elle externalise sa réflexion avant de conclure.</p>
+      <div class="tip-example">
+        <span>✅ "Think step by step. What are the main risks of removing the confirmation screen in our mortgage funnel?"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">📌 Few-Shot</span>
+      <h3>Donner des exemples (Few-Shot)</h3>
+      <p>Montrer 1 ou 2 exemples du résultat attendu est souvent plus efficace que 10 lignes d'explication. L'IA imite le format avec une précision remarquable.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Écris un titre de ticket court et actionnable"</span>
+        <span>✅ "Write a ticket title like: 'Add CTA on summary page', 'Fix email on step 3'. Now write one for: [desc]"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">♻️ Workflow</span>
+      <h3>Itérer, pas recommencer</h3>
+      <p>Ne relancez pas une nouvelle conversation si le résultat est imparfait. Affinez dans le même fil : l'IA garde le contexte et chaque itération est instantanée.</p>
+      <div class="tip-example">
+        <span>"Raccourcis le titre"<br>"Rends le 2ème critère plus précis"<br>"Ajoute un cas d'erreur"<br>"Traduis en anglais maintenant"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">⚠️ Vigilance</span>
+      <h3>Méfiance sur les chiffres & dates</h3>
+      <p>Les LLMs inventent des statistiques avec une confiance absolue. Ne jamais utiliser un chiffre généré sans le sourcer. L'IA est excellente pour la structure — vous fournissez les vrais chiffres.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "43% des clients abandonnent à l'étape 2" ← inventé</span>
+        <span>✅ Lui demander la structure, vous injectez vos données réelles</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎲 Créativité</span>
+      <h3>Demander plusieurs variantes</h3>
+      <p>Au lieu d'accepter la première proposition, demandez systématiquement des variantes. Le meilleur choix est souvent la variante B ou C. Ça prend 2 secondes de plus.</p>
+      <div class="tip-example">
+        <span>✅ "Give me 3 versions of this title: formal / neutral / punchy"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🧩 Structure avancée</span>
+      <h3>Le prompt en 3 blocs</h3>
+      <p>La structure la plus efficace pour des tâches complexes : <strong>Contexte</strong> + <strong>Tâche</strong> + <strong>Contraintes</strong>.</p>
+      <div class="tip-example">
+        <span>[Contexte] PM équipe crédit MeilleurTaux, tunnel de souscription<br>[Tâche] Write acceptance criteria for 2FA feature<br>[Contraintes] Gherkin format, 5 scenarios max, answer in English</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🚀 VS Code</span>
+      <h3>Les commandes "/" dans Copilot</h3>
+      <p>Dans Copilot Chat, taper <code>/</code> affiche les commandes rapides. Parfait pour aller droit au but sans rédiger un prompt complet.</p>
+      <div class="tip-example">
+        <span>/explain → comprendre un fichier ou du code<br>/doc → générer de la documentation<br>/fix → corriger une erreur<br>/tests → générer des tests</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎯 Mindset</span>
+      <h3>L'IA comme stagiaire brillant</h3>
+      <p>Imaginez que vous briefez un stagiaire très intelligent mais sans contexte métier. Plus votre brief est précis, plus le résultat est pertinent. Un output médiocre vient presque toujours d'un brief insuffisant.</p>
+      <div class="tip-example">
+        <span>Brief vague → output générique inutilisable<br>Brief précis + contexte métier → output exploitable directement</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── BONNES PRATIQUES ── -->
+<section id="bonnes-pratiques">
+  <div class="section-label">✅ Bonnes pratiques</div>
+  <h2>Les règles d'or</h2>
+  <p class="section-sub">Ce qu'il faut faire, ne pas faire, et comment écrire un prompt efficace.</p>
+
+  <div class="do-dont">
+    <div class="card do">
+      <span class="card-icon">✅</span>
+      <h3>À faire</h3>
+      <ul>
+        <li>Toujours relire et valider les outputs</li>
+        <li>Donner un contexte précis dans vos prompts</li>
+        <li>Itérer : affiner en plusieurs échanges</li>
+        <li>Préciser le format attendu (bullet points, tableau…)</li>
+        <li>Utiliser l'IA pour un premier jet, pas un output final</li>
+        <li>Tester plusieurs formulations si le résultat déçoit</li>
+        <li>Partager les bons prompts avec l'équipe crédit</li>
+        <li>Utiliser les outils approuvés par la DSI</li>
+      </ul>
+    </div>
+    <div class="card dont">
+      <span class="card-icon">⛔</span>
+      <h3>À ne pas faire</h3>
+      <ul>
+        <li>Partager des données clients ou confidentielles</li>
+        <li>Copier-coller sans vérification (hallucinations !)</li>
+        <li>Utiliser des outils non approuvés sur données internes</li>
+        <li>Considérer l'IA comme une source de vérité absolue</li>
+        <li>Faire confiance aux chiffres sans les vérifier</li>
+        <li>Diffuser un output IA sans l'avoir relu</li>
+        <li>Utiliser ChatGPT public pour contenu sensible</li>
+        <li>Oublier que l'IA peut avoir des biais</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-warn" style="margin-top: 1.5rem">
+    <span class="ico">⚠️</span>
+    <p><strong>Sécurité des données :</strong> Ne jamais saisir de données personnelles clients, credentials, contrats ou informations financières dans des outils IA non approuvés. En cas de doute, contactez la DSI.</p>
+  </div>
+
+  <h3 style="margin-top: 2.5rem; margin-bottom: 1.2rem; font-size: 1.1rem;">🎯 Exemple concret : mauvais vs bon prompt</h3>
+  <div class="prompt-box">
+    <div class="label">Mauvais prompt</div>
+    <p>Fais-moi un ticket Jira pour la feature de login.</p>
+    <span class="tag">❌ Trop vague</span>
+  </div>
+  <div class="prompt-box" style="border-left-color: var(--accent4)">
+    <div class="label">Bon prompt (en anglais pour de meilleurs résultats)</div>
+    <p>You are a senior PM at MeilleurTaux, a French mortgage comparison platform.<br>
+    Write a Jira ticket in French for this user story:<br>
+    "As a logged-in user, I want to receive an email when my file moves to 'En cours d'instruction'."<br>
+    Format: short title, description with context, acceptance criteria (bullet list), definition of done.</p>
+    <span class="tag" style="background: rgba(67,217,162,0.2); color: var(--accent4)">✓ Précis + EN</span>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── VS CODE & COPILOT ── -->
+<section id="vscode">
+  <div class="section-label">💻 Outils</div>
+  <h2>VS Code & GitHub Copilot</h2>
+  <p class="section-sub">Même sans être développeur, VS Code + Copilot est l'environnement le plus puissant pour travailler avec l'IA.</p>
+
+  <div class="callout">
+    <span class="ico">💡</span>
+    <p><strong>Pourquoi VS Code pour les PMs ?</strong> VS Code n'est plus réservé aux devs. Avec GitHub Copilot, c'est un environnement IA ultra-puissant pour rédiger des specs, analyser des fichiers, et connecter vos outils (Jira, Confluence, Figma) via les MCPs.</p>
+  </div>
+
+  <h3 style="margin: 2rem 0 1rem; font-size: 1.1rem;">📦 Installation étape par étape</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Télécharger VS Code</h4>
+        <p>Rendez-vous sur <code>code.visualstudio.com</code> → version macOS (Apple Silicon si Mac récent) → glissez dans Applications.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Installer l'extension GitHub Copilot</h4>
+        <p>Extensions <code>⌘⇧X</code> → rechercher <code>GitHub Copilot</code> → Installer. Installez aussi <code>GitHub Copilot Chat</code> pour le mode conversationnel.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Se connecter avec son compte GitHub</h4>
+        <p>Cliquer sur l'icône compte en bas → "Sign in with GitHub" → autoriser dans le navigateur. Votre licence Copilot doit être activée (voir section Accès).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Ouvrir Copilot Chat</h4>
+        <p>Raccourci <code>⌃⌘I</code> ou icône Copilot dans la barre latérale. Le panneau de chat s'ouvre — dialoguez avec le contexte de tous vos fichiers ouverts.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>Activer les MCPs (Jira, Confluence, Figma…)</h4>
+        <p>Les MCPs connectent Copilot à vos outils. Voir la section MCP ci-dessous pour la configuration Jira pas à pas.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1.2rem; font-size: 1.1rem;">🛠 Usages concrets pour l'équipe crédit</h3>
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-icon">📄</span>
+      <h3>Rédaction de specs & PRDs</h3>
+      <ul>
+        <li>Ouvrez un fichier <code>.md</code> dans VS Code</li>
+        <li>Décrivez votre feature à Copilot Chat</li>
+        <li>Demandez un PRD avec contexte, user stories, KPIs</li>
+        <li>Itérez directement dans le même fil</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">📊</span>
+      <h3>Analyse de données & CSV</h3>
+      <ul>
+        <li>Glissez un fichier CSV dans votre workspace</li>
+        <li>Demandez à Copilot d'analyser et trouver des tendances</li>
+        <li>Générez des scripts pour traiter la data</li>
+        <li>Pas besoin de coder — Copilot écrit, vous lisez</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔄</span>
+      <h3>Refactoring de documents</h3>
+      <ul>
+        <li>Sélectionnez un texte → "Copilot: Edit"</li>
+        <li>Simplifier, traduire, reformuler en un clic</li>
+        <li>Notes de réunion → action items structurés</li>
+        <li>Emails → tickets Jira prêts à créer</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>Automatisations légères</h3>
+      <ul>
+        <li>Scripts de renommage / traitement de fichiers</li>
+        <li>Extraction de données depuis des JSONs</li>
+        <li>Génération de templates répétitifs</li>
+        <li>Formatage de données pour import Jira</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-success" style="margin-top: 1.5rem">
+    <span class="ico">⌨️</span>
+    <p><strong>Raccourcis clés :</strong> <code>⌃⌘I</code> Ouvrir Copilot Chat · <code>⌘K</code> Inline Edit · <code>Tab</code> Accepter suggestion · <code>Esc</code> Refuser · <code>/explain</code> <code>/fix</code> <code>/doc</code> Commandes rapides</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── MCP JIRA ── -->
+<section id="mcp">
+  <div class="section-label">🔌 MCP</div>
+  <h2>Ce qu'on peut faire avec MCP Jira</h2>
+  <p class="section-sub">Le Model Context Protocol connecte GitHub Copilot directement à Jira. Finis les copy-pastes entre onglets !</p>
+
+  <div class="callout">
+    <span class="ico">🧩</span>
+    <p><strong>C'est quoi un MCP ?</strong> Un pont entre votre IA et vos outils (Jira, Confluence, Figma, GitHub…). Une fois configuré dans VS Code, vous pouvez demander à Copilot de <strong>lire, créer et modifier des tickets Jira</strong> directement depuis le chat.</p>
+  </div>
+
+  <h3 style="margin: 2rem 0 1rem; font-size: 1.1rem;">⚡ Actions disponibles avec MCP Jira</h3>
+
+  <table class="mcp-table">
+    <thead>
+      <tr>
+        <th>Action</th>
+        <th>Ce que vous dites à Copilot</th>
+        <th>Résultat</th>
+        <th>Niveau</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Créer un ticket</strong></td>
+        <td>"Crée un ticket dans le projet X pour la user story : [desc]"</td>
+        <td>Ticket créé avec titre, description, type, priorité</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Lire des tickets</strong></td>
+        <td>"Montre les tickets ouverts dans le sprint actuel du projet Y"</td>
+        <td>Liste avec statuts, assignés, priorités</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Mettre à jour</strong></td>
+        <td>"Change le statut de MTX-1234 en 'En cours', assigne à Marie"</td>
+        <td>Ticket mis à jour en temps réel dans Jira</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Commenter</strong></td>
+        <td>"Ajoute un commentaire sur MTX-567 : 'POC validé front, en attente back'"</td>
+        <td>Commentaire posté dans Jira</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Rechercher</strong></td>
+        <td>"Trouve tous les bugs High liés au tunnel de souscription crédit"</td>
+        <td>Résultats JQL filtrés et lisibles</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Créer en batch</strong></td>
+        <td>"À partir de ce PRD, génère les user stories et crée-les dans Jira"</td>
+        <td>Création automatique de plusieurs tickets</td>
+        <td><span class="badge badge-orange">⚡ Avancé</span></td>
+      </tr>
+      <tr>
+        <td><strong>Résumer un epic</strong></td>
+        <td>"Résume l'avancement de l'epic MTX-100 avec ses sous-tickets"</td>
+        <td>Synthèse narrative du périmètre et de l'avancement</td>
+        <td><span class="badge badge-orange">⚡ Avancé</span></td>
+      </tr>
+      <tr>
+        <td><strong>Lier des tickets</strong></td>
+        <td>"Crée un lien 'bloque' entre MTX-200 et MTX-201"</td>
+        <td>Dépendance créée entre les deux tickets</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin: 2.5rem 0 1rem; font-size: 1.1rem;">⚙️ Configuration du MCP Jira dans VS Code</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Générer un token API Jira</h4>
+        <p>Allez sur <code>id.atlassian.com/manage-profile/security/api-tokens</code> → Créer un token → Copiez-le (affiché une seule fois).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Ouvrir les paramètres VS Code</h4>
+        <p><code>⌘⇧P</code> → "Open User Settings (JSON)" → ajouter la configuration MCP dans la section <code>mcp.servers</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Configurer le serveur MCP Atlassian</h4>
+        <p>Renseigner <code>ATLASSIAN_EMAIL</code>, <code>ATLASSIAN_TOKEN</code> et l'URL de l'instance : <code>meilleurtaux.atlassian.net</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Tester la connexion</h4>
+        <p>Dans Copilot Chat, tapez : "Liste les projets Jira disponibles". Si ça marche, Copilot liste vos projets en quelques secondes. 🎉</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.5rem">
+    <span class="ico">🔌</span>
+    <p><strong>Autres MCPs disponibles :</strong> Confluence, Figma, GitHub, Slack, Google Drive, Notion… Consultez le <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank">Product Management Toolbox</a> pour les configurations recommandées par l'équipe.</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── ACCÈS ── -->
+<section id="acces">
+  <div class="section-label">🔑 Accès</div>
+  <h2>Par qui demander les accès ?</h2>
+  <p class="section-sub">Pour accéder aux outils IA approuvés, voici le chemin à suivre.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>GitHub Copilot</h3>
+      <ul>
+        <li>Licence accordée par l'org GitHub MeilleurTaux</li>
+        <li>Demande à adresser à <strong>ton manager</strong> ou la <strong>DSI / DevX</strong></li>
+        <li>Prérequis : compte GitHub avec email pro</li>
+        <li>Délai : généralement 24-48h après validation</li>
+        <li>Inclut : Copilot Chat, Copilot Edits, extension VS Code</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔌</span>
+      <h3>MCP Jira / Confluence</h3>
+      <ul>
+        <li>Nécessite un token API Atlassian personnel</li>
+        <li>Génération autonome sur <strong>id.atlassian.com</strong></li>
+        <li>Configuration locale dans VS Code (pas d'admin requis)</li>
+        <li>En cas de blocage : contacter l'<strong>admin Atlassian</strong></li>
+        <li>Permissions identiques à votre compte Jira habituel</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">📖</span>
+      <h3>Product Management Toolbox</h3>
+      <ul>
+        <li>Repo GitHub privé de l'organisation MeilleurTaux</li>
+        <li>Demander l'accès au <strong>repo owner</strong> ou votre manager</li>
+        <li>Contient : templates, prompts validés, configs MCP, guides</li>
+        <li>→ <strong>github.com/meilleurtaux/product-management-toolbox</strong></li>
+        <li>Lire le README pour démarrer rapidement</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧪</span>
+      <h3>Autres outils IA</h3>
+      <ul>
+        <li>Claude, ChatGPT Enterprise : via la <strong>DSI</strong></li>
+        <li>Perplexity Pro : voir avec votre manager</li>
+        <li>Figma AI : inclus dans les licences Figma existantes</li>
+        <li>Tout nouvel outil : validation DSI obligatoire</li>
+        <li>Ne pas créer de compte perso avec email pro sans accord</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── RESSOURCES ── -->
+<section id="ressources">
+  <div class="section-label">📚 Ressources</div>
+  <h2>Où trouver plus d'infos ?</h2>
+  <p class="section-sub">Les liens indispensables pour aller plus loin.</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">📦</span>
+      <h3>Product Management Toolbox</h3>
+      <p style="margin-bottom: 0.8rem">La ressource principale de l'équipe : templates, configs MCP, prompts validés, guides internes.</p>
+      <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ github.com/meilleurtaux/product-management-toolbox</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>GitHub Copilot Docs</h3>
+      <p style="margin-bottom: 0.8rem">Documentation officielle : fonctionnalités, raccourcis, meilleures pratiques, liste des MCPs.</p>
+      <a href="https://docs.github.com/copilot" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ docs.github.com/copilot</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔌</span>
+      <h3>Registre MCP</h3>
+      <p style="margin-bottom: 0.8rem">Catalogue de tous les serveurs MCP (Jira, Figma, GitHub, Linear, Notion, Slack…).</p>
+      <a href="https://github.com/modelcontextprotocol/servers" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ github.com/modelcontextprotocol/servers</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🏫</span>
+      <h3>GitHub Skills</h3>
+      <p style="margin-bottom: 0.8rem">Formations interactives gratuites pour maîtriser GitHub et Copilot pas à pas.</p>
+      <a href="https://skills.github.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ skills.github.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">💡</span>
+      <h3>Prompt Engineering Guide</h3>
+      <p style="margin-bottom: 0.8rem">Guide complet sur l'art du prompting : techniques avancées, chaîne de pensée, few-shot.</p>
+      <a href="https://www.promptingguide.ai/fr" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ promptingguide.ai/fr</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">📺</span>
+      <h3>VS Code · Démarrage rapide</h3>
+      <p style="margin-bottom: 0.8rem">Vidéos officielles pour prendre en main VS Code et Copilot en moins de 30 min.</p>
+      <a href="https://code.visualstudio.com/docs/introvideos/basics" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ code.visualstudio.com/docs/introvideos</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Préparé pour l'<strong>équipe Crédit de MeilleurTaux</strong> · Juin 2026 · Basé sur le <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank">Product Management Toolbox</a></p>
+  <p style="margin-top: 0.4rem; opacity: 0.5;">Guide interne — vérifier les informations auprès de votre manager ou de la DSI avant toute action.</p>
+</footer>
+
+</body>
+</html>
