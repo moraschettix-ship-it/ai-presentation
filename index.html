@@ -75,6 +75,16 @@
       white-space: nowrap;
     }
     nav a:hover { color: var(--text); }
+    nav .lang {
+      margin-left: auto;
+      border: 1px solid rgba(232,98,42,0.4);
+      color: var(--accent-light);
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    nav .lang:hover { color: #fff; background: rgba(232,98,42,0.15); }
 
     /* ── HERO ── */
     .hero {
@@ -361,7 +371,7 @@
 
     @media (max-width: 700px) {
       nav { gap: 1rem; padding: 0 1rem; }
-      nav a:not(:first-child) { display: none; }
+      nav a:not(.lang):not(:first-child) { display: none; }
     }
   </style>
 </head>
@@ -376,6 +386,7 @@
   <a href="#mcp">MCP Jira</a>
   <a href="#acces">Accès</a>
   <a href="#ressources">Ressources</a>
+  <a href="./en.html" class="lang">🇬🇧 EN</a>
 </nav>
 
 <main>

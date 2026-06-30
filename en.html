@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI & Tools — MeilleurTaux Credit Team</title>
+  <style>
+    :root {
+      --bg: #1a0f0a;
+      --surface: #231410;
+      --card: #2c1a13;
+      --border: rgba(255,255,255,0.07);
+      --accent: #e8622a;
+      --accent-light: #ff8550;
+      --accent2: #f0a070;
+      --accent3: #d44020;
+      --accent4: #43d9a2;
+      --text: #f5ede8;
+      --muted: #b09080;
+      --glow: rgba(232,98,42,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 15% 10%, rgba(232,98,42,0.14) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 50% at 85% 80%, rgba(240,160,112,0.1) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 40% at 60% 30%, rgba(212,64,32,0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(26,15,10,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(232,98,42,0.2);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 60px;
+    }
+    nav .logo {
+      font-weight: 800;
+      font-size: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+    nav a:hover { color: var(--text); }
+    nav .lang {
+      margin-left: auto;
+      border: 1px solid rgba(232,98,42,0.4);
+      color: var(--accent-light);
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    nav .lang:hover { color: #fff; background: rgba(232,98,42,0.15); }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 100px 2rem 80px;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(232,98,42,0.15);
+      border: 1px solid rgba(232,98,42,0.4);
+      color: var(--accent-light);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+      background: linear-gradient(135deg, #fff 20%, var(--accent-light) 55%, var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      color: #fff;
+      font-weight: 700;
+      padding: 13px 30px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      box-shadow: 0 0 40px var(--glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 0 60px var(--glow); }
+
+    /* ── SECTIONS ── */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 60px 2rem;
+    }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      margin-bottom: 0.6rem;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      font-size: 1rem;
+    }
+
+    /* ── GRID CARDS ── */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .card:hover { border-color: rgba(232,98,42,0.4); transform: translateY(-3px); }
+    .card:hover::before { opacity: 1; }
+
+    .card-icon { font-size: 1.8rem; margin-bottom: 0.8rem; display: block; }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff; }
+    .card p, .card li { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+    .card ul { list-style: none; }
+    .card li { padding: 3px 0; }
+    .card li::before { content: '→ '; color: var(--accent-light); font-weight: 700; }
+
+    /* ── DO / DON'T ── */
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    @media (max-width: 600px) { .do-dont { grid-template-columns: 1fr; } }
+    .do::before { background: var(--accent4) !important; opacity: 1 !important; }
+    .dont::before { background: #e05555 !important; opacity: 1 !important; }
+    .do li::before { color: var(--accent4); content: '✓ '; }
+    .dont li::before { color: #e05555; content: '✗ '; }
+
+    /* ── TIPS ── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 1.2rem;
+    }
+    .tip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.4rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .tip-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .tip-card:hover { border-color: rgba(232,98,42,0.4); transform: translateY(-3px); }
+    .tip-label {
+      display: inline-block;
+      background: rgba(232,98,42,0.15);
+      color: var(--accent-light);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 0.8rem;
+    }
+    .tip-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+    .tip-card p { font-size: 0.86rem; color: var(--muted); line-height: 1.65; margin-bottom: 0.8rem; }
+    .tip-example {
+      background: rgba(0,0,0,0.35);
+      border-left: 2px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.82rem;
+      color: #f0c8a8;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      line-height: 1.6;
+    }
+    .tip-example .vs { color: var(--muted); font-style: italic; display: block; margin: 0.3rem 0; font-family: inherit; }
+
+    /* ── STEPS ── */
+    .steps { display: flex; flex-direction: column; }
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      min-width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #fff;
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .step-content h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #fff; }
+    .step-content p { font-size: 0.87rem; color: var(--muted); }
+    .step-content code {
+      background: rgba(232,98,42,0.15);
+      color: var(--accent-light);
+      padding: 1px 8px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    /* ── PROMPT EXAMPLES ── */
+    .prompt-box {
+      background: #0f0806;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .prompt-box .tag {
+      position: absolute;
+      top: 12px; right: 12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(232,98,42,0.2);
+      color: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .prompt-box p { font-size: 0.88rem; color: #f0c8a8; font-family: 'Fira Code', monospace; }
+    .prompt-box .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; margin-bottom: 0.5rem; }
+
+    /* ── MCP TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    .mcp-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; min-width: 640px; }
+    .mcp-table th {
+      background: rgba(232,98,42,0.1);
+      color: var(--accent-light);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .mcp-table td {
+      padding: 10px 14px;
+      font-size: 0.86rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+    }
+    .mcp-table tr:last-child td { border-bottom: none; }
+    .mcp-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 0.72rem; font-weight: 600; }
+    .badge-orange { background: rgba(232,98,42,0.2); color: var(--accent-light); }
+    .badge-green { background: rgba(67,217,162,0.2); color: var(--accent4); }
+
+    /* ── CALLOUT ── */
+    .callout {
+      background: rgba(232,98,42,0.07);
+      border: 1px solid rgba(232,98,42,0.22);
+      border-radius: 14px;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin: 1.5rem 0;
+    }
+    .callout .ico { font-size: 1.4rem; margin-top: 2px; }
+    .callout p { font-size: 0.9rem; color: var(--text); }
+    .callout strong { color: var(--accent-light); }
+    .callout a { color: var(--accent2); }
+    .callout-warn { background: rgba(224,85,85,0.07); border-color: rgba(224,85,85,0.22); }
+    .callout-success { background: rgba(67,217,162,0.06); border-color: rgba(67,217,162,0.2); }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
+
+    /* ── FOOTER ── */
+    footer { text-align: center; padding: 3rem 2rem; color: var(--muted); font-size: 0.82rem; }
+    footer a { color: var(--accent-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    html { scroll-behavior: smooth; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(232,98,42,0.4); border-radius: 10px; }
+
+    @media (max-width: 700px) {
+      nav { gap: 1rem; padding: 0 1rem; }
+      nav a:not(.lang):not(:first-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🏠 Credit Team · MeilleurTaux</span>
+  <a href="#why">Why AI</a>
+  <a href="#whats-new">What's New</a>
+  <a href="#tips">Tips & Tricks</a>
+  <a href="#best-practices">Best Practices</a>
+  <a href="#vscode">VS Code & Copilot</a>
+  <a href="#mcp">MCP Jira</a>
+  <a href="#access">Access</a>
+  <a href="#resources">Resources</a>
+  <a href="#stay-updated">Stay Updated</a>
+  <a href="./" class="lang">🇫🇷 FR</a>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-badge">✦ Team briefing · Updated June 2026</span>
+  <h1>AI in everyday work<br>on the Credit team</h1>
+  <p>Everything you need to use AI effectively at MeilleurTaux: tools, best practices, VS Code Copilot, MCP Jira, AI agents, and the tips that change everything.</p>
+  <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank" class="hero-cta">
+    📚 Product Management Toolbox →
+  </a>
+</div>
+
+<!-- ── WHY AI ── -->
+<section id="why">
+  <div class="section-label">🚀 Context</div>
+  <h2>Why bring AI in now?</h2>
+  <p class="section-sub">Generative AI is no longer a gadget — it's a concrete productivity lever for the credit team.</p>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <h3>3x to 10x faster</h3>
+      <p>Specs, meeting summaries, Jira tickets, email replies: tasks that used to take 30 minutes now take 3.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧠</span>
+      <h3>Cognitive amplification</h3>
+      <p>AI doesn't replace your judgment — it amplifies it. It handles the volume; you keep the direction.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔁</span>
+      <h3>Automating the rituals</h3>
+      <p>Meeting notes, backlog grooming, ticket updates, reporting… anything repetitive can be delegated.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">✍️</span>
+      <h3>Writing & communication</h3>
+      <p>Emails, PRDs, user stories, presentations: AI adapts to your tone and the credit business context.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔍</span>
+      <h3>Analysis & synthesis</h3>
+      <p>Summarize user interviews, analyze feedback, structure a market study in seconds.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤝</span>
+      <h3>Dev/PM collaboration</h3>
+      <p>GitHub Copilot bridges the gap between PMs and devs. Specs become more precise and shared.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── WHAT'S NEW (2026) ── -->
+<section id="whats-new">
+  <div class="section-label">🆕 What's new in 2026</div>
+  <h2>The four shifts worth knowing</h2>
+  <p class="section-sub">The field moved fast over the last year. Here's what actually changes how we work — beyond the hype.</p>
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>AI agents, not just chatbots</h3>
+      <p>Modern AI doesn't only answer — it acts. Tools like <strong>Claude Code</strong>, GitHub Copilot Agent mode and Cursor can read your files, run commands, edit documents and update Jira on their own, then report back. You go from "ask &amp; copy-paste" to "delegate &amp; review".</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧠</span>
+      <h3>Reasoning ("thinking") models</h3>
+      <p>The latest models (Claude Opus 4.8, the GPT-5 family, Gemini) can <strong>think before answering</strong> on hard problems — planning, multi-step logic, trade-off analysis. Slower, but dramatically better on complex specs, risk analysis and edge cases.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">📚</span>
+      <h3>Huge context windows</h3>
+      <p>Models now read <strong>up to ~1M tokens</strong> at once — that's hundreds of pages. You can paste an entire PRD, a full transcript, or a whole spec folder and ask questions across all of it. No more chopping documents into pieces.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔌</span>
+      <h3>The MCP ecosystem exploded</h3>
+      <p>The Model Context Protocol became the standard way to connect AI to your tools. Jira, Confluence, Figma, GitHub, Slack, Notion, Google Drive… one protocol, dozens of integrations, all usable straight from your editor's chat.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── TIPS & TRICKS ── -->
+<section id="tips">
+  <div class="section-label">🔥 Tips & Tricks</div>
+  <h2>The tricks that change everything</h2>
+  <p class="section-sub">Concrete techniques tested by thousands of users — from the simplest to the most advanced.</p>
+
+  <div class="tips-grid">
+
+    <div class="tip-card">
+      <span class="tip-label">🦴 Classic</span>
+      <h3>Caveman prompting</h3>
+      <p>No need for elaborate sentences. AI understands direct, minimal commands very well. Short = often better. Like a caveman: straight to the point.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Could you please, if you wouldn't mind, write me a summary of this meeting in a structured format..."</span>
+        <span>✅ "Summarize. 5 bullets. Pro tone. Max 80 words."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🇬🇧 $$$ Tip</span>
+      <h3>Prompting in English = better + cheaper</h3>
+      <p>LLMs are trained mostly on English. Prompting in English improves answer quality <strong>and</strong> uses fewer tokens. Fewer tokens = cheaper for the company. You can still ask for the final answer in French.</p>
+      <div class="tip-example">
+        <span class="vs">FR prompt → correct answer, more tokens</span>
+        <span>✅ EN prompt + "Answer in French" → better quality, ~20-30% fewer tokens</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎭 Role Prompting</span>
+      <h3>Give the AI a precise role</h3>
+      <p>AI performs far better when you assign it a specific expertise up front. It's the simplest and most impactful technique there is.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Write a user story about login"</span>
+        <span>✅ "You are a senior PM at a French mortgage platform. Write a user story for..."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🔢 Structure</span>
+      <h3>Number your constraints</h3>
+      <p>For complex requests, list your constraints as numbers. AI follows an ordered list far better than a dense paragraph.</p>
+      <div class="tip-example">
+        <span>1. Answer in French<br>2. Jira table format<br>3. Max 5 lines<br>4. Direct tone, no pleasantries</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🪞 Chain of Thought</span>
+      <h3>"Think step by step"</h3>
+      <p>Adding this phrase drastically improves quality on complex topics. AI reasons better when it externalizes its thinking before concluding.</p>
+      <div class="tip-example">
+        <span>✅ "Think step by step. What are the main risks of removing the confirmation screen in our mortgage funnel?"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">📌 Few-Shot</span>
+      <h3>Give examples (few-shot)</h3>
+      <p>Showing 1 or 2 examples of the expected result is often more effective than 10 lines of explanation. AI mimics the format with remarkable precision.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "Write a short, actionable ticket title"</span>
+        <span>✅ "Write a ticket title like: 'Add CTA on summary page', 'Fix email on step 3'. Now write one for: [desc]"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">♻️ Workflow</span>
+      <h3>Iterate, don't restart</h3>
+      <p>Don't open a new conversation when the result isn't perfect. Refine in the same thread: the AI keeps the context and each iteration is instant.</p>
+      <div class="tip-example">
+        <span>"Shorten the title"<br>"Make the 2nd criterion more precise"<br>"Add an error case"<br>"Now translate to English"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">⚠️ Caution</span>
+      <h3>Be skeptical of numbers & dates</h3>
+      <p>LLMs invent statistics with absolute confidence. Never use a generated figure without sourcing it. AI is excellent for structure — you provide the real numbers.</p>
+      <div class="tip-example">
+        <span class="vs">❌ "43% of customers drop off at step 2" ← made up</span>
+        <span>✅ Ask it for the structure, then inject your real data</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎲 Creativity</span>
+      <h3>Ask for several variants</h3>
+      <p>Instead of accepting the first proposal, systematically ask for variants. The best choice is often variant B or C. It takes 2 extra seconds.</p>
+      <div class="tip-example">
+        <span>✅ "Give me 3 versions of this title: formal / neutral / punchy"</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🧩 Advanced structure</span>
+      <h3>The 3-block prompt</h3>
+      <p>The most effective structure for complex tasks: <strong>Context</strong> + <strong>Task</strong> + <strong>Constraints</strong>.</p>
+      <div class="tip-example">
+        <span>[Context] PM on MeilleurTaux credit team, mortgage funnel<br>[Task] Write acceptance criteria for 2FA feature<br>[Constraints] Gherkin format, 5 scenarios max, answer in English</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🚀 VS Code</span>
+      <h3>The "/" commands in Copilot</h3>
+      <p>In Copilot Chat, typing <code>/</code> shows quick commands. Perfect for getting straight to the point without writing a full prompt.</p>
+      <div class="tip-example">
+        <span>/explain → understand a file or code<br>/doc → generate documentation<br>/fix → fix an error<br>/tests → generate tests</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🎯 Mindset</span>
+      <h3>AI as a brilliant intern</h3>
+      <p>Imagine briefing a very smart intern with no business context. The more precise your brief, the more relevant the result. A mediocre output almost always comes from an insufficient brief.</p>
+      <div class="tip-example">
+        <span>Vague brief → generic, unusable output<br>Precise brief + business context → directly usable output</span>
+      </div>
+    </div>
+
+    <!-- NEW 2026 TIPS -->
+    <div class="tip-card">
+      <span class="tip-label">🧠 New · 2026</span>
+      <h3>Pick the right mode: fast vs thinking</h3>
+      <p>For quick rewrites or summaries, the fast model is enough. For hard problems — risk analysis, multi-step specs, edge cases — switch to a <strong>reasoning/thinking</strong> model and let it plan. Don't burn a thinking model on "shorten this title".</p>
+      <div class="tip-example">
+        <span class="vs">Quick task → fast model, instant answer</span>
+        <span>✅ "Think hard about the edge cases of this refund flow" → reasoning model</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">📚 New · 2026</span>
+      <h3>Paste the whole document</h3>
+      <p>Context windows are now huge (~1M tokens). Stop summarizing inputs by hand — paste the <strong>full</strong> transcript, PRD or spec folder and let the AI work across everything. More raw context almost always beats a hand-trimmed snippet.</p>
+      <div class="tip-example">
+        <span>✅ "Here's the full 40-page discovery transcript. Extract the top 5 pain points with verbatim quotes."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🤖 New · 2026</span>
+      <h3>Let the AI act, not just answer</h3>
+      <p>In agent mode (Copilot Agent, Claude Code, Cursor), the AI can take real actions: edit files, run scripts, update Jira via MCP. Give it a goal and let it work in a loop — then review the diff before validating.</p>
+      <div class="tip-example">
+        <span>✅ "Read this PRD, draft the user stories as a checklist, then create them in Jira project MTX. Show me before saving."</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-label">🛡️ New · 2026</span>
+      <h3>Always review the diff</h3>
+      <p>Agents are powerful but not infallible. Before accepting an action — a ticket batch, a file edit, a status change — <strong>read what it actually did</strong>. Treat the AI like a fast junior whose work you sign off on, never a black box.</p>
+      <div class="tip-example">
+        <span>Agent proposes → you read the diff → you approve or correct → only then it commits</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── BEST PRACTICES ── -->
+<section id="best-practices">
+  <div class="section-label">✅ Best practices</div>
+  <h2>The golden rules</h2>
+  <p class="section-sub">What to do, what to avoid, and how to write an effective prompt.</p>
+
+  <div class="do-dont">
+    <div class="card do">
+      <span class="card-icon">✅</span>
+      <h3>Do</h3>
+      <ul>
+        <li>Always review and validate outputs</li>
+        <li>Give precise context in your prompts</li>
+        <li>Iterate: refine over several exchanges</li>
+        <li>Specify the expected format (bullets, table…)</li>
+        <li>Use AI for a first draft, not a final output</li>
+        <li>Try several phrasings if the result disappoints</li>
+        <li>Share good prompts with the credit team</li>
+        <li>Use tools approved by IT/Security</li>
+      </ul>
+    </div>
+    <div class="card dont">
+      <span class="card-icon">⛔</span>
+      <h3>Don't</h3>
+      <ul>
+        <li>Share customer or confidential data</li>
+        <li>Copy-paste without checking (hallucinations!)</li>
+        <li>Use unapproved tools on internal data</li>
+        <li>Treat AI as an absolute source of truth</li>
+        <li>Trust numbers without verifying them</li>
+        <li>Publish an AI output without reviewing it</li>
+        <li>Use public ChatGPT for sensitive content</li>
+        <li>Forget that AI can carry biases</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-warn" style="margin-top: 1.5rem">
+    <span class="ico">⚠️</span>
+    <p><strong>Data security:</strong> Never enter personal customer data, credentials, contracts or financial information into unapproved AI tools. When in doubt, contact IT/Security (DSI).</p>
+  </div>
+
+  <h3 style="margin-top: 2.5rem; margin-bottom: 1.2rem; font-size: 1.1rem;">🎯 Concrete example: bad vs good prompt</h3>
+  <div class="prompt-box">
+    <div class="label">Bad prompt</div>
+    <p>Make me a Jira ticket for the login feature.</p>
+    <span class="tag">❌ Too vague</span>
+  </div>
+  <div class="prompt-box" style="border-left-color: var(--accent4)">
+    <div class="label">Good prompt (in English for better results)</div>
+    <p>You are a senior PM at MeilleurTaux, a French mortgage comparison platform.<br>
+    Write a Jira ticket in French for this user story:<br>
+    "As a logged-in user, I want to receive an email when my file moves to 'En cours d'instruction'."<br>
+    Format: short title, description with context, acceptance criteria (bullet list), definition of done.</p>
+    <span class="tag" style="background: rgba(67,217,162,0.2); color: var(--accent4)">✓ Precise + EN</span>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── VS CODE & COPILOT ── -->
+<section id="vscode">
+  <div class="section-label">💻 Tools</div>
+  <h2>VS Code & GitHub Copilot</h2>
+  <p class="section-sub">Even if you're not a developer, VS Code + Copilot is the most powerful environment for working with AI.</p>
+
+  <div class="callout">
+    <span class="ico">💡</span>
+    <p><strong>Why VS Code for PMs?</strong> VS Code is no longer just for devs. With GitHub Copilot, it's an ultra-powerful AI environment for writing specs, analyzing files, and connecting your tools (Jira, Confluence, Figma) via MCPs.</p>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="ico">🆕</span>
+    <p><strong>Not into VS Code? Two great alternatives in 2026:</strong> <strong>Cursor</strong> (an AI-first editor, very beginner-friendly) and <strong>Claude Code</strong> (a terminal agent that reads your files and acts). Both speak MCP too. Pick whatever you'll actually open every day — the techniques on this page apply to all three.</p>
+  </div>
+
+  <h3 style="margin: 2rem 0 1rem; font-size: 1.1rem;">📦 Step-by-step installation</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Download VS Code</h4>
+        <p>Go to <code>code.visualstudio.com</code> → macOS build (Apple Silicon if you have a recent Mac) → drag it into Applications.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Install the GitHub Copilot extension</h4>
+        <p>Extensions <code>⌘⇧X</code> → search <code>GitHub Copilot</code> → Install. Also install <code>GitHub Copilot Chat</code> for the conversational mode.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Sign in with your GitHub account</h4>
+        <p>Click the account icon at the bottom → "Sign in with GitHub" → authorize in the browser. Your Copilot license must be active (see the Access section).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Open Copilot Chat</h4>
+        <p>Shortcut <code>⌃⌘I</code> or the Copilot icon in the sidebar. The chat panel opens — talk to it with the context of all your open files.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>Enable MCPs (Jira, Confluence, Figma…)</h4>
+        <p>MCPs connect Copilot to your tools. See the MCP section below for step-by-step Jira configuration.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1.2rem; font-size: 1.1rem;">🛠 Concrete uses for the credit team</h3>
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-icon">📄</span>
+      <h3>Writing specs & PRDs</h3>
+      <ul>
+        <li>Open a <code>.md</code> file in VS Code</li>
+        <li>Describe your feature to Copilot Chat</li>
+        <li>Ask for a PRD with context, user stories, KPIs</li>
+        <li>Iterate directly in the same thread</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">📊</span>
+      <h3>Data & CSV analysis</h3>
+      <ul>
+        <li>Drop a CSV file into your workspace</li>
+        <li>Ask Copilot to analyze it and find trends</li>
+        <li>Generate scripts to process the data</li>
+        <li>No coding needed — Copilot writes, you read</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔄</span>
+      <h3>Document refactoring</h3>
+      <ul>
+        <li>Select text → "Copilot: Edit"</li>
+        <li>Simplify, translate, rephrase in one click</li>
+        <li>Meeting notes → structured action items</li>
+        <li>Emails → Jira tickets ready to create</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>Light automation</h3>
+      <ul>
+        <li>File renaming / processing scripts</li>
+        <li>Extracting data from JSON files</li>
+        <li>Generating repetitive templates</li>
+        <li>Formatting data for Jira import</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-success" style="margin-top: 1.5rem">
+    <span class="ico">⌨️</span>
+    <p><strong>Key shortcuts:</strong> <code>⌃⌘I</code> Open Copilot Chat · <code>⌘K</code> Inline Edit · <code>Tab</code> Accept suggestion · <code>Esc</code> Reject · <code>/explain</code> <code>/fix</code> <code>/doc</code> Quick commands</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── MCP JIRA ── -->
+<section id="mcp">
+  <div class="section-label">🔌 MCP</div>
+  <h2>What you can do with MCP Jira</h2>
+  <p class="section-sub">The Model Context Protocol connects GitHub Copilot directly to Jira. No more copy-pasting between tabs!</p>
+
+  <div class="callout">
+    <span class="ico">🧩</span>
+    <p><strong>What is an MCP?</strong> A bridge between your AI and your tools (Jira, Confluence, Figma, GitHub…). Once configured in VS Code, you can ask Copilot to <strong>read, create and update Jira tickets</strong> right from the chat.</p>
+  </div>
+
+  <h3 style="margin: 2rem 0 1rem; font-size: 1.1rem;">⚡ Available actions with MCP Jira</h3>
+
+  <div class="table-wrap">
+  <table class="mcp-table">
+    <thead>
+      <tr>
+        <th>Action</th>
+        <th>What you tell Copilot</th>
+        <th>Result</th>
+        <th>Level</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Create a ticket</strong></td>
+        <td>"Create a ticket in project X for this user story: [desc]"</td>
+        <td>Ticket created with title, description, type, priority</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Read tickets</strong></td>
+        <td>"Show the open tickets in project Y's current sprint"</td>
+        <td>List with statuses, assignees, priorities</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Update</strong></td>
+        <td>"Change MTX-1234 status to 'In progress', assign to Marie"</td>
+        <td>Ticket updated in real time in Jira</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Comment</strong></td>
+        <td>"Add a comment on MTX-567: 'Front POC validated, waiting on back'"</td>
+        <td>Comment posted in Jira</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Search</strong></td>
+        <td>"Find all High bugs linked to the credit subscription funnel"</td>
+        <td>Filtered, readable JQL results</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+      <tr>
+        <td><strong>Batch create</strong></td>
+        <td>"From this PRD, generate the user stories and create them in Jira"</td>
+        <td>Automatic creation of multiple tickets</td>
+        <td><span class="badge badge-orange">⚡ Advanced</span></td>
+      </tr>
+      <tr>
+        <td><strong>Summarize an epic</strong></td>
+        <td>"Summarize the progress of epic MTX-100 with its sub-tasks"</td>
+        <td>Narrative synthesis of scope and progress</td>
+        <td><span class="badge badge-orange">⚡ Advanced</span></td>
+      </tr>
+      <tr>
+        <td><strong>Link tickets</strong></td>
+        <td>"Create a 'blocks' link between MTX-200 and MTX-201"</td>
+        <td>Dependency created between the two tickets</td>
+        <td><span class="badge badge-green">✓ Simple</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1rem; font-size: 1.1rem;">⚙️ Configuring MCP Jira in VS Code</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>Generate a Jira API token</h4>
+        <p>Go to <code>id.atlassian.com/manage-profile/security/api-tokens</code> → Create token → Copy it (shown only once).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>Open VS Code settings</h4>
+        <p><code>⌘⇧P</code> → "Open User Settings (JSON)" → add the MCP configuration in the <code>mcp.servers</code> section.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>Configure the Atlassian MCP server</h4>
+        <p>Fill in <code>ATLASSIAN_EMAIL</code>, <code>ATLASSIAN_TOKEN</code> and the instance URL: <code>meilleurtaux.atlassian.net</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>Test the connection</h4>
+        <p>In Copilot Chat, type: "List the available Jira projects". If it works, Copilot lists your projects within seconds. 🎉</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.5rem">
+    <span class="ico">🔌</span>
+    <p><strong>Other available MCPs:</strong> Confluence, Figma, GitHub, Slack, Google Drive, Notion… Check the <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank">Product Management Toolbox</a> for the team's recommended configurations.</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── ACCESS ── -->
+<section id="access">
+  <div class="section-label">🔑 Access</div>
+  <h2>Who do I ask for access?</h2>
+  <p class="section-sub">To get access to approved AI tools, here's the path to follow.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>GitHub Copilot</h3>
+      <ul>
+        <li>License granted by the MeilleurTaux GitHub org</li>
+        <li>Request it from <strong>your manager</strong> or <strong>IT / DevX</strong></li>
+        <li>Prerequisite: a GitHub account with your work email</li>
+        <li>Lead time: usually 24-48h after approval</li>
+        <li>Includes: Copilot Chat, Copilot Edits, VS Code extension</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔌</span>
+      <h3>MCP Jira / Confluence</h3>
+      <ul>
+        <li>Requires a personal Atlassian API token</li>
+        <li>Generate it yourself on <strong>id.atlassian.com</strong></li>
+        <li>Local setup in VS Code (no admin required)</li>
+        <li>If blocked: contact the <strong>Atlassian admin</strong></li>
+        <li>Permissions match your usual Jira account</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">📖</span>
+      <h3>Product Management Toolbox</h3>
+      <ul>
+        <li>Private GitHub repo of the MeilleurTaux org</li>
+        <li>Request access from the <strong>repo owner</strong> or your manager</li>
+        <li>Contains: templates, validated prompts, MCP configs, guides</li>
+        <li>→ <strong>github.com/meilleurtaux/product-management-toolbox</strong></li>
+        <li>Read the README to get started fast</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧪</span>
+      <h3>Other AI tools</h3>
+      <ul>
+        <li>Claude, ChatGPT Enterprise: via <strong>IT/Security</strong></li>
+        <li>Perplexity Pro: check with your manager</li>
+        <li>Figma AI: included in existing Figma licenses</li>
+        <li>Any new tool: IT/Security approval required</li>
+        <li>Don't create a personal account with your work email without approval</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── RESOURCES ── -->
+<section id="resources">
+  <div class="section-label">📚 Resources</div>
+  <h2>Where to find more</h2>
+  <p class="section-sub">The essential links to go further.</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">📦</span>
+      <h3>Product Management Toolbox</h3>
+      <p style="margin-bottom: 0.8rem">The team's main resource: templates, MCP configs, validated prompts, internal guides.</p>
+      <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ github.com/meilleurtaux/product-management-toolbox</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🤖</span>
+      <h3>GitHub Copilot Docs</h3>
+      <p style="margin-bottom: 0.8rem">Official documentation: features, shortcuts, best practices, list of MCPs.</p>
+      <a href="https://docs.github.com/copilot" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ docs.github.com/copilot</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔌</span>
+      <h3>MCP Registry</h3>
+      <p style="margin-bottom: 0.8rem">Catalog of all MCP servers (Jira, Figma, GitHub, Linear, Notion, Slack…).</p>
+      <a href="https://github.com/modelcontextprotocol/servers" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ github.com/modelcontextprotocol/servers</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🏫</span>
+      <h3>GitHub Skills</h3>
+      <p style="margin-bottom: 0.8rem">Free interactive courses to master GitHub and Copilot step by step.</p>
+      <a href="https://skills.github.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ skills.github.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">💡</span>
+      <h3>Prompt Engineering Guide</h3>
+      <p style="margin-bottom: 0.8rem">A complete guide to the art of prompting: advanced techniques, chain of thought, few-shot.</p>
+      <a href="https://www.promptingguide.ai" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ promptingguide.ai</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">📺</span>
+      <h3>VS Code · Quick start</h3>
+      <p style="margin-bottom: 0.8rem">Official videos to get up and running with VS Code and Copilot in under 30 min.</p>
+      <a href="https://code.visualstudio.com/docs/introvideos/basics" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ code.visualstudio.com/docs/introvideos</a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── STAY UP TO DATE ── -->
+<section id="stay-updated">
+  <div class="section-label">📡 Stay updated</div>
+  <h2>How to keep up in a fast-moving field</h2>
+  <p class="section-sub">AI moves weekly. You don't need to read everything — pick one newsletter, one podcast and one channel, and let them do the filtering for you.</p>
+
+  <div class="callout callout-success">
+    <span class="ico">🎯</span>
+    <p><strong>The 20-min/week routine:</strong> skim <strong>one</strong> newsletter (start with Lenny's for product, TLDR AI for raw news), listen to <strong>one</strong> podcast on your commute, and follow 3-4 people on X/LinkedIn. That's enough to never be caught off guard — without drowning.</p>
+  </div>
+
+  <h3 style="margin: 2rem 0 1.2rem; font-size: 1.1rem;">📨 Newsletters</h3>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">📦</span>
+      <h3>Lenny's Newsletter</h3>
+      <p style="margin-bottom: 0.8rem"><strong>The</strong> reference for product management & growth — by Lenny Rachitsky. Deep, practical, increasingly AI-focused. A must for PMs.</p>
+      <a href="https://www.lennysnewsletter.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ lennysnewsletter.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧪</span>
+      <h3>One Useful Thing</h3>
+      <p style="margin-bottom: 0.8rem">Ethan Mollick (Wharton professor). The best writing on how to actually <em>use</em> AI at work — pragmatic, no hype.</p>
+      <a href="https://www.oneusefulthing.org" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ oneusefulthing.org</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <h3>TLDR AI</h3>
+      <p style="margin-bottom: 0.8rem">A 5-minute daily digest of the most important AI news. Perfect to stay aware without spending real time.</p>
+      <a href="https://tldr.tech/ai" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ tldr.tech/ai</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🍞</span>
+      <h3>Ben's Bites</h3>
+      <p style="margin-bottom: 0.8rem">Friendly daily AI newsletter — news, tools and what they mean, in plain language. Great for non-engineers.</p>
+      <a href="https://bensbites.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ bensbites.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔮</span>
+      <h3>The Rundown AI</h3>
+      <p style="margin-bottom: 0.8rem">Daily roundup of AI news and tools, with quick tutorials. One of the largest AI newsletters.</p>
+      <a href="https://www.therundown.ai" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ therundown.ai</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">📊</span>
+      <h3>Stratechery</h3>
+      <p style="margin-bottom: 0.8rem">Ben Thompson's analysis of tech strategy & business. Less "tools", more "where the industry is going". For the bigger picture.</p>
+      <a href="https://stratechery.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ stratechery.com</a>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1.2rem; font-size: 1.1rem;">🎙 Podcasts</h3>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">🎧</span>
+      <h3>Lenny's Podcast</h3>
+      <p style="margin-bottom: 0.8rem">Long-form interviews with top product, growth and AI leaders. The companion to the newsletter — also on YouTube & Spotify.</p>
+      <a href="https://www.lennyspodcast.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ lennyspodcast.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">📰</span>
+      <h3>The AI Daily Brief</h3>
+      <p style="margin-bottom: 0.8rem">Nathaniel Whittemore's short daily episode on the latest AI news and what it means for business. Easy daily habit.</p>
+      <a href="https://open.spotify.com/show/7gKwwMLnxBSReErxYi2BQv" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ The AI Daily Brief</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🚀</span>
+      <h3>No Priors</h3>
+      <p style="margin-bottom: 0.8rem">Sarah Guo & Elad Gil interview the people building frontier AI. Great for the "what's coming next" view.</p>
+      <a href="https://www.no-priors.com" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ no-priors.com</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🛰</span>
+      <h3>Latent Space</h3>
+      <p style="margin-bottom: 0.8rem">By swyx — the engineering-leaning AI podcast & newsletter. More technical, excellent for understanding how things actually work.</p>
+      <a href="https://www.latent.space" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ latent.space</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🏛</span>
+      <h3>a16z Podcast</h3>
+      <p style="margin-bottom: 0.8rem">Andreessen Horowitz's take on AI, startups and markets. Useful for strategy and where investment is flowing.</p>
+      <a href="https://a16z.com/podcasts" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ a16z.com/podcasts</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🇫🇷</span>
+      <h3>Génération Do It Yourself</h3>
+      <p style="margin-bottom: 0.8rem">For a French-language option: deep founder interviews (Matthieu Stefani), increasingly covering AI & product. Great in the car.</p>
+      <a href="https://gdiy.fr" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ gdiy.fr</a>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1.2rem; font-size: 1.1rem;">📺 YouTube channels</h3>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">🐺</span>
+      <h3>Matt Wolfe</h3>
+      <p style="margin-bottom: 0.8rem">Weekly roundup of new AI tools and how to use them. Accessible, hands-on, non-technical. Best starting point.</p>
+      <a href="https://www.youtube.com/@mreflow" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@mreflow</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🧭</span>
+      <h3>AI Explained</h3>
+      <p style="margin-bottom: 0.8rem">Calm, rigorous breakdowns of new models and research. The antidote to hype — if a video drops here, it matters.</p>
+      <a href="https://www.youtube.com/@aiexplained-official" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@aiexplained-official</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🎓</span>
+      <h3>Andrej Karpathy</h3>
+      <p style="margin-bottom: 0.8rem">Ex-OpenAI/Tesla. His "Intro to LLMs" and deep-dives are the clearest explanations of how AI works, period.</p>
+      <a href="https://www.youtube.com/@AndrejKarpathy" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@AndrejKarpathy</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">📄</span>
+      <h3>Two Minute Papers</h3>
+      <p style="margin-bottom: 0.8rem">Short, enthusiastic videos summarizing the latest AI research papers. Great to feel the pace of progress.</p>
+      <a href="https://www.youtube.com/@TwoMinutePapers" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@TwoMinutePapers</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔥</span>
+      <h3>Fireship</h3>
+      <p style="margin-bottom: 0.8rem">Fast, witty 5-min videos on new tech & AI tools. Dev-leaning but great for PMs who want to understand the buzzwords.</p>
+      <a href="https://www.youtube.com/@Fireship" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@Fireship</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">🥚</span>
+      <h3>Y Combinator</h3>
+      <p style="margin-bottom: 0.8rem">Talks and panels on building products with AI, from the world's top startup accelerator. Practical founder perspective.</p>
+      <a href="https://www.youtube.com/@ycombinator" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ youtube.com/@ycombinator</a>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.5rem 0 1.2rem; font-size: 1.1rem;">🐦 People to follow (X / LinkedIn)</h3>
+  <div class="grid-3">
+    <div class="card">
+      <span class="card-icon">👤</span>
+      <h3>Ethan Mollick</h3>
+      <p style="margin-bottom: 0.8rem">Wharton professor. The most practical voice on using AI for real work. <code>@emollick</code></p>
+      <a href="https://x.com/emollick" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ x.com/emollick</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">👤</span>
+      <h3>Andrej Karpathy</h3>
+      <p style="margin-bottom: 0.8rem">Clear, honest takes on where AI is and isn't. Coined "vibe coding". <code>@karpathy</code></p>
+      <a href="https://x.com/karpathy" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ x.com/karpathy</a>
+    </div>
+    <div class="card">
+      <span class="card-icon">👤</span>
+      <h3>Lenny Rachitsky</h3>
+      <p style="margin-bottom: 0.8rem">Product & growth insights, plus a steady stream of AI-for-PM threads. <code>@lennysan</code></p>
+      <a href="https://x.com/lennysan" target="_blank" style="color: var(--accent2); font-size: 0.85rem; text-decoration: none; font-weight: 600;">→ x.com/lennysan</a>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.8rem">
+    <span class="ico">💬</span>
+    <p><strong>Best source of all: the team.</strong> Found a great prompt, tool or article? Drop it in the team channel and add it to the <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank">Product Management Toolbox</a>. A shared feed beats any individual newsletter.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Prepared for the <strong>MeilleurTaux Credit team</strong> · Updated June 2026 · Based on the <a href="https://github.com/meilleurtaux/product-management-toolbox" target="_blank">Product Management Toolbox</a></p>
+  <p style="margin-top: 0.4rem; opacity: 0.5;">Internal guide — verify information with your manager or IT/Security before taking action.</p>
+</footer>
+
+</body>
+</html>
