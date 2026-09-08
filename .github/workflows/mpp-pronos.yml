@@ -10,6 +10,14 @@ name: MPP - pronostics automatiques
 #     pronostic avec les cotes et la repartition de la foule les plus recentes,
 #     juste avant le coup d'envoi.
 #
+# Cadence de la passe tardive : toutes les 15 minutes. La fenetre d'acceptation
+# cote code fait 75 minutes (T-90 -> T-15), ce qui laisse 5 occasions par match.
+# Meme si le cron GitHub en saute trois, le pronostic passe. Budget associe sur
+# un depot prive (2000 min/mois offertes) : ~24 executions par jour de match,
+# ~13 jours de match par mois, plus une passe quotidienne, soit ~340 minutes de
+# job `gate` et ~120 minutes de job `pronostiquer`. Environ un quart du quota.
+# Passer a */10 resterait tenable (~500 min) sans rien apporter de decisif.
+#
 # Le cron de GitHub Actions est retarde de 5 a 20 min aux heures chargees et
 # peut sauter des executions. La fiabilite ne vient donc PAS de la ponctualite
 # du cron mais de la redondance : fenetre d'acceptation large cote code
@@ -18,13 +26,18 @@ name: MPP - pronostics automatiques
 # 15h-20h UTC couvre les coups d'envoi de 18h45 et 21h00 heure de Paris, en
 # heure d'ete comme en heure d'hiver. Le filtrage fin est fait par le code.
 #
+# DEPOT PUBLIC : les logs et les artefacts d'Actions sont lisibles par tous. Le
+# resume de job affiche les pronostics, et le journal est commite en clair. Sur
+# une ligue entre amis, cela revient a publier ses choix avant le coup d'envoi.
+# Ce workflow est concu pour un depot PRIVE.
+#
 # RAPPEL GITHUB : un workflow planifie ne s'execute QUE depuis la branche par
 # defaut du depot. Tant que ce fichier n'est pas sur `main`, rien ne se declenche.
 
 on:
   schedule:
     - cron: "0 18 * * *"              # passe J-1, tous les jours
-    - cron: "*/10 15-20 * * 2,3,4"    # passe tardive, mar/mer/jeu
+    - cron: "*/15 15-20 * * 2,3,4"    # passe tardive, mar/mer/jeu
   workflow_dispatch:
     inputs:
       phase:

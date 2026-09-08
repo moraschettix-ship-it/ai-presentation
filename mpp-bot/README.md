@@ -10,37 +10,69 @@ d'envoi (cotes fraîches).
 
 ## Mise en route
 
-Deux choses à faire. Il n'y a **aucun sélecteur CSS à renseigner**, aucun
-fichier à éditer.
+### Le dépôt doit être privé
 
-### 1. Ajouter deux secrets
+Ce n'est pas une précaution de principe. Sur un dépôt **public** :
 
-`Settings` → `Secrets and variables` → `Actions` → `New repository secret` :
+- le journal du bot est commité en clair, avec vos pronostics ;
+- les **logs** de GitHub Actions sont lisibles par n'importe qui, et le résumé
+  de job affiche la table complète des pronostics ;
+- les **artefacts** (captures de diagnostic) sont téléchargeables par tous.
 
-| Nom | Valeur |
+Dans une ligue entre amis, cela revient à publier vos choix avant le coup
+d'envoi. Utilisez un dépôt privé.
+
+### 1. Où mettre vos identifiants MPP
+
+Dans les **secrets GitHub Actions**. Nulle part ailleurs.
+
+`https://github.com/VOTRE-COMPTE/VOTRE-DEPOT/settings/secrets/actions`
+→ bouton **New repository secret**, deux fois :
+
+| Name | Secret |
 |---|---|
-| `MPP_EMAIL` | votre identifiant MPP |
+| `MPP_EMAIL` | votre identifiant MPP (email ou pseudo) |
 | `MPP_PASSWORD` | votre mot de passe MPP |
 
-Optionnels, pour être prévenu si ça casse : `TELEGRAM_BOT_TOKEN` +
-`TELEGRAM_CHAT_ID`, ou `ALERT_WEBHOOK_URL`. Sans eux, un échec fait rougir le
-job et GitHub vous envoie un mail.
+Le nom doit être écrit exactement comme ci-dessus, en majuscules. Une fois
+enregistré, GitHub ne vous les réaffichera plus — c'est normal, ils sont
+chiffrés au repos et injectés uniquement dans le job au moment de l'exécution.
+Ils sont masqués automatiquement dans les logs (`***`).
+
+Trois règles, dans l'ordre d'importance :
+
+1. **Jamais dans un fichier du dépôt.** Ni dans `config.yaml`, ni dans un
+   `.env`, ni dans un commentaire. Un secret commité reste dans l'historique
+   git même après suppression.
+2. **Jamais dans une conversation**, y compris avec moi. Je n'en ai pas besoin :
+   le bot les lit depuis l'environnement du job.
+3. **Un mot de passe dédié si possible.** Si vous réutilisez ailleurs le mot de
+   passe de votre compte MPP, changez-en un des deux avant de continuer.
+
+Secrets optionnels, pour être prévenu quand ça casse :
+
+| Name | À quoi ça sert |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | alerte Telegram |
+| `ALERT_WEBHOOK_URL` | alerte vers n'importe quel webhook JSON |
+
+Sans eux, un échec fait quand même rougir le job et GitHub vous envoie un mail.
 
 ### 2. Mettre ce code sur la branche par défaut
 
 **Un workflow planifié ne s'exécute que depuis la branche par défaut du dépôt**
-(`main`). Tant que ces fichiers sont sur une autre branche, rien ne se
-déclenche. C'est la seule subtilité GitHub à connaître ici.
+(`main`). Tant que ces fichiers sont ailleurs, rien ne se déclenche. C'est la
+seule subtilité GitHub qui compte ici.
 
-C'est tout. Le bot tourne ensuite tous les jours à 18h UTC (passe J-1) et
-toutes les 10 minutes les mardis, mercredis et jeudis entre 15h et 21h UTC
-(passe juste avant les coups d'envoi).
+C'est tout. Le bot tourne ensuite tous les jours à 18h UTC (passe J-1) et toutes
+les 15 minutes les mardis, mercredis et jeudis entre 15h et 21h UTC (passe juste
+avant les coups d'envoi).
 
 ### Recommandé une fois : vérifier
 
-`Actions` → **MPP - diagnostic** → `Run workflow`. Ça se connecte, liste tout
-ce que le bot voit, **n'écrit rien** sur MPP, et joint une capture. Une minute
-pour être sûr que la connexion passe.
+`Actions` → **MPP - diagnostic** → `Run workflow`. Ça se connecte, liste tout ce
+que le bot voit, **n'écrit rien** sur MPP, et joint une capture. Une minute pour
+être sûr que la connexion passe.
 
 > **Honnêteté sur ce point.** Ce code n'a jamais pu être exécuté contre le vrai
 > monpetitprono.com : l'environnement où il a été écrit bloque ce domaine. La
@@ -49,6 +81,13 @@ pour être sûr que la connexion passe.
 > première exécution réelle reste la première. Si elle échoue, le diagnostic
 > joint dit exactement ce qui a été vu, et l'ajustement est une ligne de
 > `config.yaml`.
+
+### Coût
+
+Sur un dépôt privé, GitHub offre 2000 minutes d'Actions par mois. Ce bot en
+consomme environ 460 : ~340 pour l'étape `gate` (qui s'arrête en quelques
+secondes quand il n'y a aucun match dans la fenêtre, sans installer de
+navigateur) et ~120 pour les exécutions réelles les jours de match.
 
 ---
 
