@@ -1,0 +1,164 @@
+name: MPP - pronostics automatiques
+
+# Deux passes, pour deux raisons differentes.
+#
+#   early (une fois par jour) : garantit qu'un pronostic existe pour chaque
+#     match a venir, meme si toutes les passes tardives echouent ou sont
+#     sautees. C'est le filet de securite.
+#
+#   late (toutes les 10 min pendant les creneaux de match) : rafraichit le
+#     pronostic avec les cotes et la repartition de la foule les plus recentes,
+#     juste avant le coup d'envoi.
+#
+# Le cron de GitHub Actions est retarde de 5 a 20 min aux heures chargees et
+# peut sauter des executions. La fiabilite ne vient donc PAS de la ponctualite
+# du cron mais de la redondance : fenetre d'acceptation large cote code
+# (T-90 -> T-15, cf mpp/schedule.py) et passages frequents.
+#
+# 15h-20h UTC couvre les coups d'envoi 18h45 et 21h00 de Paris en heure d'ete
+# comme en heure d'hiver. Le filtrage fin est fait par le code, pas par le cron.
+
+on:
+  schedule:
+    - cron: "0 18 * * *"              # passe J-1, tous les jours
+    - cron: "*/10 15-20 * * 2,3,4"    # passe tardive, mar/mer/jeu
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "Fenetre a traiter"
+        type: choice
+        options: [late, early, any]
+        default: any
+      dry_run:
+        description: "Calculer et afficher sans rien envoyer"
+        type: boolean
+        default: true
+
+# Deux executions simultanees ecriraient sur la meme page MPP et sur le meme
+# journal. On serialise, sans annuler la course en cours.
+concurrency:
+  group: mpp-bot
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: mpp-bot
+
+jobs:
+  # Etape a cout quasi nul : decide s'il faut reveiller la grosse machine.
+  # Sans elle, les 36 executions quotidiennes de la passe tardive
+  # installeraient Chromium pour rien.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      due: ${{ steps.check.outputs.due }}
+      phase: ${{ steps.phase.outputs.phase }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Determiner la phase
+        id: phase
+        run: |
+          if [ -n "${{ inputs.phase }}" ]; then
+            echo "phase=${{ inputs.phase }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 18 * * *" ]; then
+            echo "phase=early" >> "$GITHUB_OUTPUT"
+          else
+            echo "phase=late" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: pip install --quiet PyYAML==6.0.2
+
+      - name: Y a-t-il un match dans la fenetre ?
+        id: check
+        run: python -m mpp gate --phase "${{ steps.phase.outputs.phase }}"
+
+  pronostiquer:
+    needs: gate
+    if: needs.gate.outputs.due == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write        # necessaire pour recommiter le journal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: mpp-bot/requirements.txt
+
+      - run: pip install --quiet -r requirements.txt
+
+      # Le telechargement de Chromium (~150 Mo) domine la duree du job.
+      # La cle inclut la version de Playwright : un bump invalide le cache.
+      - name: Cache Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('mpp-bot/requirements.txt') }}
+
+      - name: Installer Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Executer la passe
+        id: bot
+        env:
+          MPP_EMAIL: ${{ secrets.MPP_EMAIL }}
+          MPP_PASSWORD: ${{ secrets.MPP_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          set +e
+          python -m mpp run \
+            --phase "${{ needs.gate.outputs.phase }}" \
+            ${{ inputs.dry_run == true && '--dry-run' || '' }} \
+            | tee run.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      # Le journal est commite meme quand la passe a partiellement echoue :
+      # c'est precisement dans ce cas qu'on veut la trace. Effet de bord utile,
+      # ces commits empechent GitHub de desactiver le cron apres 60 jours
+      # d'inactivite sur le depot.
+      - name: Commiter le journal
+        if: always()
+        run: |
+          git config user.name  "mpp-bot"
+          git config user.email "mpp-bot@users.noreply.github.com"
+          git add state/journal.jsonl state/fixtures.json state/last_run.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "rien a commiter"
+          else
+            git commit -m "chore(mpp): journal ${{ needs.gate.outputs.phase }} [skip ci]"
+            for i in 1 2 3 4; do
+              git pull --rebase origin "${GITHUB_REF_NAME}" && \
+                git push origin "HEAD:${GITHUB_REF_NAME}" && break
+              sleep $((2 ** i))
+            done
+          fi
+
+      - name: Resume dans l'onglet Actions
+        if: always()
+        run: |
+          {
+            echo "### Passe \`${{ needs.gate.outputs.phase }}\`"
+            echo ""
+            echo '```'
+            cat run.log 2>/dev/null || echo "(pas de sortie)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Un echec partiel (code 1) ne doit pas passer inapercu : on fait rougir
+      # le job pour declencher la notification GitHub, en plus des alertes
+      # Telegram/webhook envoyees par le bot lui-meme.
+      - name: Propager le statut
+        if: always()
+        run: exit ${{ steps.bot.outputs.code }}

@@ -1,0 +1,7 @@
+# Les captures de `discover` contiennent le DOM complet ET les reponses JSON du
+# site, donc potentiellement des jetons de session. Jamais dans git.
+state/discovery/
+*.tmp
+__pycache__/
+*.pyc
+run.log

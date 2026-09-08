@@ -1,0 +1,28 @@
+name: MPP - tests
+
+on:
+  push:
+    paths: ["mpp-bot/**", ".github/workflows/mpp-*.yml"]
+  pull_request:
+    paths: ["mpp-bot/**", ".github/workflows/mpp-*.yml"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: mpp-bot
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet PyYAML==6.0.2
+      - name: Tests unitaires
+        run: python -m unittest discover -s tests -t . -v
+      - name: La configuration se charge
+        run: python -c "from mpp.config import load; load('config.yaml'); print('config.yaml OK')"
+      - name: Calcul hors ligne sur la journee de reference
+        run: python -m mpp plan fixtures/screenshot-j1.json --target-deviations 2

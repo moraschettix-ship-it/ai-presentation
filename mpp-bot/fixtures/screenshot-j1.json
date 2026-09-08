@@ -1,0 +1,11 @@
+{
+  "_source": "capture d'ecran MPP fournie par l'utilisateur, journee J.1",
+  "matches": [
+    {"home": "AEK Athens",  "away": "LASK",        "cotes": [65, 124, 129], "crowd_pct": [70, 21, 8],  "_pick_affiche": "3-1"},
+    {"home": "Bruges",      "away": "Aston Villa", "cotes": [100, 117, 93], "crowd_pct": [15, 23, 62], "_pick_affiche": "0-2"},
+    {"home": "Real Madrid", "away": "Inter",       "cotes": [62, 124, 136], "crowd_pct": [85, 11, 4],  "_pick_affiche": "3-1"},
+    {"home": "LOSC",        "away": "Betis",       "cotes": [88, 121, 103], "crowd_pct": [63, 25, 13], "_pick_affiche": "3-0"},
+    {"home": "Dortmund",    "away": "Villarreal",  "cotes": [73, 119, 122], "crowd_pct": [81, 15, 4],  "_pick_affiche": "3-0"},
+    {"home": "Porto",       "away": "Man City",    "cotes": [127, 124, 67], "crowd_pct": [7, 12, 81],  "_pick_affiche": "1-4"}
+  ]
+}

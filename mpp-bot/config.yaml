@@ -1,0 +1,103 @@
+# Configuration du bot MPP.
+#
+# ATTENTION : la section `site.selectors` est VOLONTAIREMENT VIDE. Elle doit
+# etre remplie a partir d'une capture reelle du site :
+#
+#     export MPP_EMAIL=... MPP_PASSWORD=...
+#     python -m mpp discover --headed
+#
+# La commande ecrit dans state/discovery/ le HTML des pages, une capture
+# d'ecran, et surtout *.network.json qui contient toutes les reponses JSON de
+# la page. Si le calendrier et les cotes apparaissent dans ce fichier, une API
+# interne existe : c'est la voie a privilegier (plus rapide, plus stable, pas
+# de Chromium en CI).
+
+state_dir: state
+
+# Ne pronostiquer que ces competitions. La chaine est cherchee dans le libelle
+# de competition ET dans celui de journee de chaque carte. Vide = tout prendre.
+# A ajuster une fois qu'on sait ce que MPP affiche exactement : le screenshot de
+# reference melangeait des clubs de C1 et de C3, donc ce filtre n'est pas
+# cosmetique.
+competition_filter: []
+
+# Garde-fou : au-dela, on suspecte une erreur de filtre (ex : le bot va
+# pronostiquer tout le championnat au lieu de la journee du jour).
+max_matches_per_run: 40
+
+strategy:
+  # Appetit de differenciation. U_i = p_i + kappa * (p_i - foule_i).
+  # Ignore si target_deviations est defini.
+  kappa: 0.35
+
+  # Mode recommande : au lieu de figer kappa, on fixe le NOMBRE de matchs sur
+  # lesquels on accepte de s'ecarter du favori du marche, et kappa est
+  # recalibre a chaque journee. Le bot depense alors son budget de variance sur
+  # les deviations les moins cheres (marche serre + foule unanime).
+  # Sur une journee de 18 matchs : 4-6 = agressif mais tenable, 2-3 = prudent,
+  # 0 = suivre le marche (et donc finir median).
+  target_deviations: 5
+  kappa_max: 3.0
+
+  # Ajoute a kappa quand on court apres le leader en fin de saison.
+  # 0.0 au depart, a monter manuellement (ou via un futur automatisme).
+  catchup_kappa: 0.0
+
+  # Modele de buts (choix du score exact une fois l'issue decidee).
+  rho: 0.0             # correction Dixon-Coles ; 0 = Poisson pur. A calibrer.
+  total_prior: 3.05    # buts par match en phase de ligue de C1
+  total_shrink: 0.75   # 0 = total deduit uniquement des cotes (~2.5, trop bas)
+                       # 1 = total force au prior
+                       # Le score bascule de 1-0 vers 2-1 entre 0.7 et 0.8 :
+                       # en dessous de 0.7 la correction est inerte. Voir
+                       # README, section "Score exact".
+
+  # Bonus MPP pour un score exact. NON CONFIRME : a renseigner des que le
+  # bareme de la ligue est connu. N'influence pas le choix de l'issue, sert au
+  # calcul de l'esperance affichee.
+  exact_bonus: 0.0
+
+windows:
+  early_min: 360       # passe J-1 : matchs entre T-48h et T-6h
+  early_max: 2880
+  late_min: 15         # passe tardive : matchs entre T-90min et T-15min
+  late_max: 90
+  deadline_margin: 6   # jamais de soumission a moins de 6 min du coup d'envoi
+
+site:
+  headless: true
+  timeout_ms: 20000
+  action_delay_s: [1.2, 2.8]   # temporisation aleatoire entre deux actions
+  locale: fr-FR
+
+  selectors:
+    # --- URLs (a confirmer via `discover`) ---
+    login_url: ""
+    matches_url: ""
+
+    # --- connexion ---
+    email_input: ""
+    password_input: ""
+    login_submit: ""
+    logged_in_marker: ""     # element present UNIQUEMENT une fois connecte
+    cookie_accept: ""        # bouton de la banniere cookies, si presente
+
+    # --- carte de match ---
+    card: ""                 # conteneur d'une carte
+    card_id_attr: "data-match-id"
+    home_team: ""
+    away_team: ""
+    kickoff_time: ""         # texte du type "18h45"
+    matchday: ""             # texte du type "J.1"
+    cote_cells: ""           # DOIT renvoyer exactement 3 elements (1, N, 2)
+    crowd_cells: ""          # DOIT renvoyer exactement 3 elements (%)
+
+    # --- saisie ---
+    home_score_input: ""
+    away_score_input: ""
+    submit_button: ""
+    locked_marker: ""        # present quand la saisie est fermee
+
+    # --- relecture de controle (fortement recommande) ---
+    existing_home_score: ""
+    existing_away_score: ""

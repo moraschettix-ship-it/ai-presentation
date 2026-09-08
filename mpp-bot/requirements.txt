@@ -1,0 +1,4 @@
+# Runtime minimal, volontairement. Le coeur mathematique est en Python pur
+# (pas de numpy/scipy) pour que le job GitHub Actions demarre en ~5s.
+playwright==1.48.0
+PyYAML==6.0.2
