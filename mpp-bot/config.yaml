@@ -1,60 +1,57 @@
 # Configuration du bot MPP.
 #
-# ATTENTION : la section `site.selectors` est VOLONTAIREMENT VIDE. Elle doit
-# etre remplie a partir d'une capture reelle du site :
+# Tout est deja regle pour fonctionner sans intervention. Les seules choses a
+# fournir sont les deux secrets GitHub MPP_EMAIL et MPP_PASSWORD.
 #
-#     export MPP_EMAIL=... MPP_PASSWORD=...
-#     python -m mpp discover --headed
-#
-# La commande ecrit dans state/discovery/ le HTML des pages, une capture
-# d'ecran, et surtout *.network.json qui contient toutes les reponses JSON de
-# la page. Si le calendrier et les cotes apparaissent dans ce fichier, une API
-# interne existe : c'est la voie a privilegier (plus rapide, plus stable, pas
-# de Chromium en CI).
+# Il n'y a AUCUN selecteur CSS a renseigner : une carte de match est reconnue a
+# sa signature numerique (3 cotes + 3 pourcentages + une heure), pas a ses
+# classes. Voir mpp/detect.py.
 
 state_dir: state
 
-# Ne pronostiquer que ces competitions. La chaine est cherchee dans le libelle
-# de competition ET dans celui de journee de chaque carte. Vide = tout prendre.
-# A ajuster une fois qu'on sait ce que MPP affiche exactement : le screenshot de
-# reference melangeait des clubs de C1 et de C3, donc ce filtre n'est pas
-# cosmetique.
+# Ne pronostiquer que ces competitions (recherche dans le libelle de
+# competition et de journee). Vide = toutes les cartes trouvees.
+# A renseigner si MPP affiche C1 et C3 sur la meme page : sans filtre, le bot
+# pronostiquerait l'Europa League en croyant faire la Ligue des Champions.
 competition_filter: []
 
-# Garde-fou : au-dela, on suspecte une erreur de filtre (ex : le bot va
-# pronostiquer tout le championnat au lieu de la journee du jour).
+# Garde-fou : au-dela, on suspecte une erreur de page (tout un championnat au
+# lieu de la journee du jour).
 max_matches_per_run: 40
 
 strategy:
-  # Appetit de differenciation. U_i = p_i + kappa * (p_i - foule_i).
-  # Ignore si target_deviations est defini.
-  kappa: 0.35
-
-  # Mode recommande : au lieu de figer kappa, on fixe le NOMBRE de matchs sur
-  # lesquels on accepte de s'ecarter du favori du marche, et kappa est
-  # recalibre a chaque journee. Le bot depense alors son budget de variance sur
-  # les deviations les moins cheres (marche serre + foule unanime).
-  # Sur une journee de 18 matchs : 4-6 = agressif mais tenable, 2-3 = prudent,
-  # 0 = suivre le marche (et donc finir median).
+  # Nombre de matchs par journee sur lesquels on accepte de s'ecarter du favori
+  # du marche. C'EST LE SEUL REGLAGE QUI COMPTE.
+  #
+  # Sur MPP, cote = K / probabilite, donc l'esperance de points est identique
+  # pour les trois issues (verifie dans tests/test_odds.py). Suivre le favori
+  # ne rapporte donc rien : on finit median. S'ecarter de la foule est en
+  # revanche GRATUIT en esperance, et ne coute que de la variance.
+  #
+  # Sur une journee de 18 matchs :
+  #   0     suivre le marche, finir median (garanti)
+  #   2-3   prudent, uniquement les deviations quasi gratuites
+  #   5     agressif mais tenable  <- defaut
+  #   8+    dernier la plupart des semaines, premier de temps en temps
   target_deviations: 5
+
+  # Utilise seulement si target_deviations est mis a null.
+  kappa: 0.35
   kappa_max: 3.0
 
-  # Ajoute a kappa quand on court apres le leader en fin de saison.
-  # 0.0 au depart, a monter manuellement (ou via un futur automatisme).
+  # S'ajoute a kappa pour monter la variance quand on court apres le leader.
   catchup_kappa: 0.0
 
-  # Modele de buts (choix du score exact une fois l'issue decidee).
-  rho: 0.0             # correction Dixon-Coles ; 0 = Poisson pur. A calibrer.
+  # Modele de buts (choix du score une fois l'issue decidee).
+  rho: 0.0             # correction Dixon-Coles ; 0 = Poisson pur, a calibrer
   total_prior: 3.05    # buts par match en phase de ligue de C1
-  total_shrink: 0.75   # 0 = total deduit uniquement des cotes (~2.5, trop bas)
-                       # 1 = total force au prior
-                       # Le score bascule de 1-0 vers 2-1 entre 0.7 et 0.8 :
-                       # en dessous de 0.7 la correction est inerte. Voir
-                       # README, section "Score exact".
+  total_shrink: 0.75   # corrige le biais bas de l'ajustement sur les seules
+                       # cotes (2.5 buts au lieu de 3.1). Le score bascule de
+                       # 1-0 vers 2-1 entre 0.7 et 0.8 : en dessous de 0.7 le
+                       # reglage est inerte. Voir README.
 
-  # Bonus MPP pour un score exact. NON CONFIRME : a renseigner des que le
-  # bareme de la ligue est connu. N'influence pas le choix de l'issue, sert au
-  # calcul de l'esperance affichee.
+  # Bonus MPP pour un score exact. Inconnu a ce jour : n'influence pas le choix
+  # de l'issue, seulement l'esperance affichee dans les rapports.
   exact_bonus: 0.0
 
 windows:
@@ -65,39 +62,17 @@ windows:
   deadline_margin: 6   # jamais de soumission a moins de 6 min du coup d'envoi
 
 site:
+  base_url: "https://www.monpetitprono.com"
+
+  # Laisser vide : le bot part de base_url, ferme la banniere cookies, trouve
+  # le formulaire de connexion, puis trouve la page de pronostics en suivant
+  # les liens. Ne renseigner que si le diagnostic montre qu'il s'est perdu.
+  login_url: ""
+  matches_url: ""
+
   headless: true
-  timeout_ms: 20000
+  timeout_ms: 25000
   action_delay_s: [1.2, 2.8]   # temporisation aleatoire entre deux actions
+  nav_attempts: 6
   locale: fr-FR
-
-  selectors:
-    # --- URLs (a confirmer via `discover`) ---
-    login_url: ""
-    matches_url: ""
-
-    # --- connexion ---
-    email_input: ""
-    password_input: ""
-    login_submit: ""
-    logged_in_marker: ""     # element present UNIQUEMENT une fois connecte
-    cookie_accept: ""        # bouton de la banniere cookies, si presente
-
-    # --- carte de match ---
-    card: ""                 # conteneur d'une carte
-    card_id_attr: "data-match-id"
-    home_team: ""
-    away_team: ""
-    kickoff_time: ""         # texte du type "18h45"
-    matchday: ""             # texte du type "J.1"
-    cote_cells: ""           # DOIT renvoyer exactement 3 elements (1, N, 2)
-    crowd_cells: ""          # DOIT renvoyer exactement 3 elements (%)
-
-    # --- saisie ---
-    home_score_input: ""
-    away_score_input: ""
-    submit_button: ""
-    locked_marker: ""        # present quand la saisie est fermee
-
-    # --- relecture de controle (fortement recommande) ---
-    existing_home_score: ""
-    existing_away_score: ""
+  executable_path: ""          # usage local uniquement, jamais en CI

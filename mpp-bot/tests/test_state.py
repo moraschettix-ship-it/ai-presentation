@@ -69,3 +69,40 @@ class TestStore(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRedaction(unittest.TestCase):
+    """Les captures de diagnostic partent en artefact GitHub Actions. Sur un
+    depot public, ces artefacts sont telechargeables par n'importe qui : rien
+    de sensible ne doit y figurer."""
+
+    def test_secret_keys_are_masked_and_json_stays_valid(self):
+        from mpp.site import redact
+
+        payload = json.dumps(
+            {
+                "accessToken": "eyJhbGciOiJIUzI1NiJ9.abc.def",
+                "refreshToken": "r-123",
+                "Set-Cookie": "sid=xyz",
+                "user": {"sessionId": "s-9", "pseudo": "moi", "apiKey": "k"},
+                "matches": [{"home": "Inter", "cote": 124}],
+                "libelle": 'il a dit "non"',
+            }
+        )
+        out = json.loads(redact(payload))
+        self.assertEqual(out["accessToken"], "[REDACTED]")
+        self.assertEqual(out["refreshToken"], "[REDACTED]")
+        self.assertEqual(out["Set-Cookie"], "[REDACTED]")
+        self.assertEqual(out["user"]["sessionId"], "[REDACTED]")
+        self.assertEqual(out["user"]["apiKey"], "[REDACTED]")
+        # Les donnees utiles, elles, doivent survivre intactes.
+        self.assertEqual(out["user"]["pseudo"], "moi")
+        self.assertEqual(out["matches"][0]["cote"], 124)
+        self.assertEqual(out["libelle"], 'il a dit "non"')
+
+    def test_non_json_bodies_have_long_tokens_masked(self):
+        from mpp.site import redact
+
+        out = redact("Set-Cookie: sid=" + "a" * 48 + "; Path=/; texte normal")
+        self.assertNotIn("a" * 48, out)
+        self.assertIn("texte normal", out)

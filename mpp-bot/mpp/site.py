@@ -1,20 +1,16 @@
-"""Adaptateur Mon Petit Prono (Playwright).
+"""Adaptateur Mon Petit Prono (Playwright), sans selecteur code en dur.
 
-MPP n'expose pas d'API publique documentee. Deux consequences :
+Toute l'identification passe par mpp/detect.py : une carte est reconnue a sa
+signature numerique (3 cotes + 3 pourcentages + une heure), pas a ses classes
+CSS. Voir l'en-tete de detect.py pour le raisonnement.
 
-1. TOUS les selecteurs CSS vivent dans `config.yaml`, jamais dans le code. Quand
-   le front change - et il changera - la reparation est une edition de YAML,
-   pas un patch Python. Le code, lui, ne change pas.
+Ce module ne fait que la mecanique navigateur : connexion, recherche de la page
+de pronostics, saisie, relecture de controle, et production d'un diagnostic
+exploitable quand quelque chose ne colle pas.
 
-2. Le sous-commande `discover` enregistre le DOM ET tout le trafic XHR/fetch de
-   la page. Si le front est une SPA, elle parle forcement a un backend JSON :
-   `discover` le prouve ou l'infirme en une execution. Si une API interne
-   existe, la basculer dessus supprime Chromium du pipeline et divise le temps
-   d'execution par dix - c'est le premier chantier a instruire.
-
-Hygiene volontaire, puisque l'acces automatise n'est pas prevu par les CGU :
-un seul navigateur, une temporisation entre chaque action, aucune requete en
-parallele, un User-Agent stable.
+Hygiene volontaire, l'acces automatise n'etant vraisemblablement pas prevu par
+les CGU : un seul navigateur, temporisation aleatoire entre chaque action,
+aucune requete en parallele, User-Agent stable.
 """
 
 from __future__ import annotations
@@ -26,14 +22,66 @@ import re
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
+from .detect import (
+    CARD_SCAN_JS,
+    CONSENT_JS,
+    LOGIN_SCAN_JS,
+    SUBMIT_SCAN_JS,
+    DetectionError,
+    parse_raw_cards,
+)
 from .models import Card
-from .schedule import SITE_TZ, parse_site_time
+from .schedule import resolve_kickoff
 
-_NUM_RE = re.compile(r"(\d+(?:[.,]\d+)?)")
+# Liens a suivre pour trouver la page de pronostics quand l'atterrissage
+# post-connexion n'en est pas une.
+NAV_HINTS = re.compile(
+    r"prono|pronostic|grille|mes matchs|matchs|journ[ée]e|calendrier|jouer",
+    re.IGNORECASE,
+)
+
+
+# Cles dont la valeur ne doit jamais sortir dans une capture : les artefacts
+# GitHub Actions d'un depot PUBLIC sont telechargeables par n'importe qui.
+_SECRET_KEY_RE = re.compile(
+    r"token|auth|password|passwd|secret|session|cookie|jwt|bearer|api[-_]?key|"
+    r"refresh|credential",
+    re.IGNORECASE,
+)
+_REDACTED = "[REDACTED]"
+
+
+def _redact_value(node: Any) -> Any:
+    if isinstance(node, dict):
+        return {
+            k: (_REDACTED if _SECRET_KEY_RE.search(str(k)) else _redact_value(v))
+            for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_redact_value(v) for v in node]
+    return node
+
+
+def redact(text: str) -> str:
+    """Neutralise les valeurs sensibles d'un corps JSON avant ecriture.
+
+    On travaille sur la structure decodee plutot qu'a coups d'expressions
+    regulieres : une substitution textuelle sur du JSON produit du JSON casse
+    des que la valeur contient une quote echappee, et un fichier casse n'est
+    plus exploitable pour diagnostiquer quoi que ce soit.
+
+    Corps non decodable (HTML, texte libre) : on masque toute suite assez
+    longue de caracteres de jeton, ce qui couvre les JWT et les cles opaques
+    sans toucher au texte normal.
+    """
+    try:
+        return json.dumps(_redact_value(json.loads(text)), ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return re.sub(r"[A-Za-z0-9_\-]{40,}\.?[A-Za-z0-9_\-.]*", _REDACTED, text)
 
 
 class SiteError(RuntimeError):
@@ -45,38 +93,17 @@ class LoginError(SiteError):
 
 
 @dataclass
-class Selectors:
-    """Carte des selecteurs. Toutes les valeurs viennent de config.yaml."""
-
+class SiteConfig:
+    base_url: str = "https://www.monpetitprono.com"
+    # Laisser vide pour laisser le bot trouver seul. Renseigner uniquement si
+    # l'auto-detection echoue (le diagnostic dit alors quoi mettre).
     login_url: str = ""
     matches_url: str = ""
-    email_input: str = ""
-    password_input: str = ""
-    login_submit: str = ""
-    logged_in_marker: str = ""
-    cookie_accept: str = ""
-    card: str = ""
-    card_id_attr: str = "data-match-id"
-    home_team: str = ""
-    away_team: str = ""
-    kickoff_time: str = ""
-    matchday: str = ""
-    cote_cells: str = ""          # doit renvoyer exactement 3 elements par carte
-    crowd_cells: str = ""         # idem
-    home_score_input: str = ""
-    away_score_input: str = ""
-    submit_button: str = ""
-    locked_marker: str = ""
-    existing_home_score: str = ""
-    existing_away_score: str = ""
-
-
-@dataclass
-class SiteConfig:
-    selectors: Selectors = field(default_factory=Selectors)
     headless: bool = True
-    timeout_ms: int = 20_000
+    executable_path: str = ""       # utile en local, jamais en CI
+    timeout_ms: int = 25_000
     action_delay_s: tuple[float, float] = (1.2, 2.8)
+    nav_attempts: int = 6           # liens explores pour trouver la page de pronos
     user_agent: str = (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
@@ -84,12 +111,22 @@ class SiteConfig:
     locale: str = "fr-FR"
 
 
-def parse_number(text: str, what: str) -> float:
-    """Extrait un nombre d'un libelle, en refusant tout ce qui est ambigu."""
-    matches = _NUM_RE.findall(text or "")
-    if len(matches) != 1:
-        raise SiteError(f"{what} : attendu 1 nombre dans {text!r}, trouve {len(matches)}")
-    return float(matches[0].replace(",", "."))
+@dataclass
+class Diagnostic:
+    """Ce que le bot a vu, quand il n'a pas vu ce qu'il fallait."""
+
+    step: str
+    url: str = ""
+    message: str = ""
+    candidates: int = 0
+    details: list[str] = field(default_factory=list)
+
+    def render(self) -> str:
+        lines = [f"[{self.step}] {self.message}", f"  url : {self.url}"]
+        if self.candidates:
+            lines.append(f"  blocs candidats : {self.candidates}")
+        lines += [f"  - {d}" for d in self.details[:10]]
+        return "\n".join(lines)
 
 
 class MppSite:
@@ -101,14 +138,19 @@ class MppSite:
         self._pw = None
         self._browser = None
         self._page = None
+        self._index: dict[str, int] = {}      # match_id -> data-mpp-card
         self.network_log: list[dict[str, Any]] = []
+        self.diagnostics: list[Diagnostic] = []
 
     # --- cycle de vie ------------------------------------------------------
     def __enter__(self) -> "MppSite":
         from playwright.sync_api import sync_playwright
 
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(headless=self.cfg.headless)
+        launch: dict[str, Any] = {"headless": self.cfg.headless}
+        if self.cfg.executable_path:
+            launch["executable_path"] = self.cfg.executable_path
+        self._browser = self._pw.chromium.launch(**launch)
         context = self._browser.new_context(
             user_agent=self.cfg.user_agent,
             locale=self.cfg.locale,
@@ -116,20 +158,16 @@ class MppSite:
         )
         context.set_default_timeout(self.cfg.timeout_ms)
         self._page = context.new_page()
-        if self.capture_dir is not None:
-            self._page.on("response", self._log_response)
+        self._page.on("response", self._log_response)
         return self
 
     def __exit__(self, *exc: Any) -> None:
         # La fermeture ne doit jamais masquer l'erreur qui a fait sortir du bloc.
-        if self._browser is not None:
+        for closer in (self._browser, self._pw):
+            if closer is None:
+                continue
             try:
-                self._browser.close()
-            except Exception:
-                pass
-        if self._pw is not None:
-            try:
-                self._pw.stop()
+                closer.close() if closer is self._browser else closer.stop()
             except Exception:
                 pass
 
@@ -144,213 +182,315 @@ class MppSite:
         time.sleep(random.uniform(lo, hi))
 
     def _log_response(self, response: Any) -> None:
-        """Enregistre les reponses JSON : c'est la que se trouve l'API, si elle existe."""
+        """Trace les reponses JSON : c'est la qu'on verra une API interne."""
         try:
-            ctype = (response.headers or {}).get("content-type", "")
-            if "json" not in ctype:
+            if "json" not in (response.headers or {}).get("content-type", ""):
                 return
-            body = response.text()[:20_000]
+            url = response.url
+            if _SECRET_KEY_RE.search(url.split("?", 1)[1] if "?" in url else ""):
+                url = url.split("?", 1)[0] + "?[REDACTED]"
             self.network_log.append(
                 {
-                    "url": response.url,
+                    "url": url,
                     "status": response.status,
                     "method": response.request.method,
-                    "body_preview": body,
+                    "body_preview": redact(response.text()[:20_000]),
                 }
             )
         except Exception:
             pass
 
-    # --- navigation --------------------------------------------------------
-    def login(self, email: str, password: str) -> None:
-        s = self.cfg.selectors
-        self.page.goto(s.login_url, wait_until="domcontentloaded")
-        if s.cookie_accept:
-            try:
-                self.page.click(s.cookie_accept, timeout=4000)
-            except Exception:
-                pass   # banniere absente : cas normal
-        self._pause()
-        self.page.fill(s.email_input, email)
-        self.page.fill(s.password_input, password)
-        self._pause()
-        self.page.click(s.login_submit)
+    def _note(self, diag: Diagnostic) -> None:
+        diag.url = self.page.url
+        self.diagnostics.append(diag)
+
+    # --- connexion ---------------------------------------------------------
+    def _dismiss_consent(self) -> None:
         try:
-            self.page.wait_for_selector(s.logged_in_marker, timeout=self.cfg.timeout_ms)
+            if self.page.evaluate(CONSENT_JS):
+                self._pause()
+        except Exception:
+            pass    # une banniere absente ou recalcitrante n'est pas bloquante
+
+    def _goto_login_form(self) -> None:
+        """Amene la page sur un formulaire contenant un champ mot de passe."""
+        start = self.cfg.login_url or self.cfg.base_url
+        self.page.goto(start, wait_until="domcontentloaded")
+        self._dismiss_consent()
+        if self.page.query_selector('input[type="password"]'):
+            return
+
+        # Pas de formulaire sur la page d'accueil : suivre un lien de connexion.
+        # `e.href` (et non getAttribute) renvoie l'URL absolue resolue : un
+        # href relatif ne peut pas etre passe tel quel a page.goto().
+        links = self.page.evaluate(
+            """() => Array.from(document.querySelectorAll('a[href], button'))
+                 .map(e => ({ text: (e.innerText || '').replace(/\s+/g,' ').trim(), href: e.href || '' }))
+                 .filter(l => /connexion|se connecter|login|sign in|s'identifier/i.test(l.text + ' ' + l.href))
+                 .slice(0, 5)"""
+        )
+        for link in links:
+            try:
+                if link["href"] and "#" not in link["href"].rsplit("/", 1)[-1]:
+                    self.page.goto(link["href"], wait_until="domcontentloaded")
+                elif link["text"]:
+                    self.page.get_by_text(link["text"], exact=False).first.click()
+                else:
+                    continue
+                self._dismiss_consent()
+                self.page.wait_for_selector('input[type="password"]', timeout=6000)
+                return
+            except Exception:
+                continue
+
+        self._note(
+            Diagnostic(
+                step="login",
+                message="aucun champ mot de passe trouve, et aucun lien de "
+                "connexion exploitable depuis la page de depart",
+                details=[f"lien essaye : {l['text']!r} -> {l['href']!r}" for l in links],
+            )
+        )
+        raise LoginError(
+            "formulaire de connexion introuvable. Renseigner `site.login_url` "
+            "dans config.yaml (le diagnostic joint indique ce qui a ete vu)."
+        )
+
+    def login(self, email: str, password: str) -> None:
+        self._goto_login_form()
+        found = self.page.evaluate(LOGIN_SCAN_JS)
+        if not found.get("found"):
+            raise LoginError("champ mot de passe disparu entre-temps")
+        if not found.get("has_user"):
+            raise LoginError("champ identifiant introuvable a cote du mot de passe")
+
+        self.page.fill("[data-mpp-user]", email)
+        self.page.fill("[data-mpp-pass]", password)
+        self._pause()
+
+        if found.get("has_submit"):
+            self.page.click("[data-mpp-submit]")
+        else:
+            self.page.press("[data-mpp-pass]", "Enter")
+
+        # Critere de succes : le champ mot de passe a disparu. Il ne depend
+        # d'aucun libelle, d'aucune classe, et d'aucune URL.
+        try:
+            self.page.wait_for_selector(
+                'input[type="password"]', state="detached", timeout=self.cfg.timeout_ms
+            )
         except Exception as exc:
+            self._note(
+                Diagnostic(
+                    step="login",
+                    message="le champ mot de passe est toujours la apres envoi : "
+                    "identifiants refuses, captcha, ou double authentification",
+                )
+            )
             raise LoginError(
-                "connexion echouee : le marqueur de session "
-                f"{s.logged_in_marker!r} n'est jamais apparu. "
-                "Identifiants invalides, captcha, ou selecteur obsolete."
+                "connexion echouee : le formulaire est toujours affiche apres envoi"
             ) from exc
+        self._pause()
+
+    # --- recherche de la page de pronostics --------------------------------
+    def _scan(self) -> list[dict[str, Any]]:
+        try:
+            return self.page.evaluate(CARD_SCAN_JS) or []
+        except Exception:
+            return []
 
     def open_matches(self) -> None:
-        s = self.cfg.selectors
-        self.page.goto(s.matches_url, wait_until="networkidle")
-        self.page.wait_for_selector(s.card, timeout=self.cfg.timeout_ms)
-        self._pause()
+        """Trouve la page de pronostics, en explorant si necessaire."""
+        if self.cfg.matches_url:
+            self.page.goto(self.cfg.matches_url, wait_until="networkidle")
+            self._dismiss_consent()
+            if self._scan():
+                return
+            self._note(
+                Diagnostic(
+                    step="matches",
+                    message="`site.matches_url` ne contient aucune carte detectable",
+                )
+            )
+
+        if self._scan():
+            return   # la page d'atterrissage est deja la bonne
+
+        visited = {self.page.url}
+        links = self.page.evaluate(
+            """() => Array.from(document.querySelectorAll('a[href]'))
+                 .map(a => ({ text: (a.innerText || '').replace(/\\s+/g,' ').trim(), href: a.href }))
+                 .filter(l => l.href && !l.href.startsWith('javascript'))"""
+        )
+        candidates = [l for l in links if NAV_HINTS.search(l["text"] + " " + l["href"])]
+
+        tried: list[str] = []
+        for link in candidates[: self.cfg.nav_attempts]:
+            if link["href"] in visited:
+                continue
+            visited.add(link["href"])
+            tried.append(f"{link['text'][:30]!r} -> {link['href']}")
+            try:
+                self.page.goto(link["href"], wait_until="networkidle")
+                self._dismiss_consent()
+                self._pause()
+                if self._scan():
+                    return
+            except Exception:
+                continue
+
+        self._note(
+            Diagnostic(
+                step="matches",
+                message="page de pronostics introuvable : aucune page visitee ne "
+                "contient de bloc combinant 3 cotes et 3 pourcentages",
+                details=tried,
+            )
+        )
+        raise SiteError(
+            "aucune carte de match detectee. Renseigner `site.matches_url` dans "
+            "config.yaml, ou consulter le diagnostic joint."
+        )
 
     # --- lecture -----------------------------------------------------------
-    def read_cards(self, day: date | None = None) -> tuple[list[Card], list[str]]:
+    def read_cards(self) -> tuple[list[Card], list[str]]:
         """Renvoie (cartes lues, erreurs par carte).
 
-        Une carte illisible n'interrompt jamais la lecture des autres : on
-        collecte l'erreur et on continue. Un pronostic manquant sur un match
-        vaut mieux qu'aucun pronostic sur dix-huit.
+        Une carte illisible n'interrompt jamais les autres : mieux vaut 17
+        pronostics sur 18 que zero.
         """
-        s = self.cfg.selectors
-        day = day or datetime.now(SITE_TZ).date()
+        now = datetime.now(timezone.utc)
+        payload = self._scan()
+        try:
+            raw_cards, errors = parse_raw_cards(payload)
+        except DetectionError as exc:
+            self._note(
+                Diagnostic(
+                    step="parse",
+                    message=str(exc),
+                    candidates=len(payload),
+                    details=[str(p.get("text", ""))[:80] for p in payload[:5]],
+                )
+            )
+            raise SiteError(str(exc)) from exc
+
+        self._index = {}
         cards: list[Card] = []
-        errors: list[str] = []
-
-        elements = self.page.query_selector_all(s.card)
-        if not elements:
-            raise SiteError(f"aucune carte trouvee avec le selecteur {s.card!r}")
-
-        for idx, el in enumerate(elements):
+        for raw in raw_cards:
             try:
-                cards.append(self._parse_card(el, idx, day))
+                kickoff = resolve_kickoff(raw.time, raw.date, now)
             except Exception as exc:
-                errors.append(f"carte #{idx} : {exc}")
+                errors.append(f"{raw.home} - {raw.away} : date/heure illisible ({exc})")
+                continue
+
+            match_id = raw.match_id or (
+                f"{kickoff.date().isoformat()}:{raw.home}-{raw.away}"
+                .lower()
+                .replace(" ", "_")
+            )
+            self._index[match_id] = raw.idx
+
+            existing = None
+            digits = [v for v in raw.input_values if v.strip().isdigit()]
+            if len(digits) == 2:
+                existing = (int(digits[0]), int(digits[1]))
+
+            cards.append(
+                Card(
+                    match_id=match_id,
+                    home=raw.home,
+                    away=raw.away,
+                    kickoff=kickoff,
+                    cotes=raw.cotes,
+                    crowd_pct=raw.crowd_pct,
+                    existing_pick=existing,
+                    locked=raw.input_count < 2,
+                    raw={"idx": raw.idx, "inputs": raw.input_count, "text": raw.text},
+                )
+            )
         return cards, errors
 
-    def _text(self, el: Any, selector: str, what: str) -> str:
-        node = el.query_selector(selector)
-        if node is None:
-            raise SiteError(f"{what} introuvable (selecteur {selector!r})")
-        return (node.inner_text() or "").strip()
-
-    def _triplet(self, el: Any, selector: str, what: str) -> tuple[float, float, float]:
-        nodes = el.query_selector_all(selector)
-        if len(nodes) != 3:
-            raise SiteError(f"{what} : attendu 3 valeurs, trouve {len(nodes)}")
-        values = [parse_number(n.inner_text(), what) for n in nodes]
-        return (values[0], values[1], values[2])
-
-    def _parse_card(self, el: Any, idx: int, day: date) -> Card:
-        s = self.cfg.selectors
-        match_id = el.get_attribute(s.card_id_attr) or ""
-        home = self._text(el, s.home_team, "equipe domicile")
-        away = self._text(el, s.away_team, "equipe exterieur")
-        if not match_id:
-            # Repli stable tant que MPP n'expose pas d'identifiant : la paire
-            # d'equipes + la date suffit a identifier un match d'une journee.
-            match_id = f"{day.isoformat()}:{home}-{away}".lower().replace(" ", "_")
-
-        kickoff = parse_site_time(day, self._text(el, s.kickoff_time, "heure"))
-        cotes = self._triplet(el, s.cote_cells, "cotes")
-        crowd = self._triplet(el, s.crowd_cells, "repartition foule")
-
-        locked = bool(s.locked_marker and el.query_selector(s.locked_marker))
-        existing = None
-        if s.existing_home_score and s.existing_away_score:
-            hn = el.query_selector(s.existing_home_score)
-            an = el.query_selector(s.existing_away_score)
-            if hn is not None and an is not None:
-                ht = (hn.inner_text() or hn.get_attribute("value") or "").strip()
-                at = (an.inner_text() or an.get_attribute("value") or "").strip()
-                if ht.isdigit() and at.isdigit():
-                    existing = (int(ht), int(at))
-
-        matchday = None
-        if s.matchday:
-            node = el.query_selector(s.matchday)
-            if node is not None:
-                matchday = (node.inner_text() or "").strip()
-
-        return Card(
-            match_id=match_id,
-            home=home,
-            away=away,
-            kickoff=kickoff,
-            matchday=matchday,
-            cotes=cotes,
-            crowd_pct=crowd,
-            existing_pick=existing,
-            locked=locked,
-        )
-
     # --- ecriture ----------------------------------------------------------
-    def submit_score(self, match_id: str, home_goals: int, away_goals: int) -> None:
-        """Saisit un score et valide. Ecrase toute saisie existante."""
-        s = self.cfg.selectors
-        card = self._find_card(match_id)
-        if s.locked_marker and card.query_selector(s.locked_marker):
-            raise SiteError(f"{match_id} : saisie fermee cote MPP")
-
-        home_input = card.query_selector(s.home_score_input)
-        away_input = card.query_selector(s.away_score_input)
-        if home_input is None or away_input is None:
-            raise SiteError(f"{match_id} : champs de score introuvables")
-
-        home_input.fill(str(home_goals))
-        self._pause()
-        away_input.fill(str(away_goals))
-        self._pause()
-
-        if s.submit_button:
-            button = card.query_selector(s.submit_button) or self.page.query_selector(
-                s.submit_button
+    def _inputs(self, match_id: str):
+        idx = self._index.get(match_id)
+        if idx is None:
+            raise SiteError(f"{match_id} : carte absente du dernier scan")
+        card = self.page.query_selector(f'[data-mpp-card="{idx}"]')
+        if card is None:
+            raise SiteError(f"{match_id} : carte disparue de la page")
+        inputs = [
+            el
+            for el in card.query_selector_all("input")
+            if (el.get_attribute("type") or "text").lower()
+            in ("text", "number", "tel", "")
+        ]
+        if len(inputs) != 2:
+            raise SiteError(
+                f"{match_id} : {len(inputs)} champs de saisie au lieu de 2 "
+                "(saisie fermee, ou interface a boutons +/- non geree)"
             )
-            if button is None:
-                raise SiteError(f"{match_id} : bouton de validation introuvable")
-            button.click()
+        return inputs
+
+    def fill_score(self, match_id: str, home_goals: int, away_goals: int) -> None:
+        """Saisit un score. Ecrase toute valeur presente."""
+        home_input, away_input = self._inputs(match_id)
+        for element, value in ((home_input, home_goals), (away_input, away_goals)):
+            element.fill("")
+            element.fill(str(value))
+            element.dispatch_event("change")   # frameworks reactifs
+            self._pause()
+
+    def click_validate(self, match_id: str) -> str | None:
+        """Clique le bouton de validation. Renvoie 'card', 'page' ou None."""
+        idx = self._index.get(match_id)
+        if idx is None:
+            return None
+        scope = self.page.evaluate(SUBMIT_SCAN_JS, idx)
+        if scope is None:
+            return None
+        self.page.click(f'[data-mpp-validate="{idx}"]')
         self._pause()
+        return scope
 
-    def verify_score(self, match_id: str, home_goals: int, away_goals: int) -> bool:
-        """Relit la carte pour confirmer l'enregistrement.
+    def verify_all(
+        self, expected: dict[str, tuple[int, int]]
+    ) -> dict[str, bool]:
+        """Recharge la page et confirme chaque score enregistre.
 
-        Un HTTP 200 ne prouve rien : on verifie la valeur affichee. Sans cette
-        etape, un changement de front peut faire echouer toutes les saisies en
-        silence pendant des semaines.
+        Un HTTP 200 ne prouve rien : sans cette relecture, un changement
+        d'interface peut faire echouer toutes les saisies en silence pendant des
+        semaines. Une seule rechargement pour tous les matchs, pas un par match.
         """
-        s = self.cfg.selectors
-        if not (s.existing_home_score and s.existing_away_score):
-            return True   # verification non configuree : on ne peut rien affirmer
         self.page.reload(wait_until="networkidle")
-        card = self._find_card(match_id)
-        hn = card.query_selector(s.existing_home_score)
-        an = card.query_selector(s.existing_away_score)
-        if hn is None or an is None:
-            return False
-        ht = (hn.inner_text() or hn.get_attribute("value") or "").strip()
-        at = (an.inner_text() or an.get_attribute("value") or "").strip()
-        return ht == str(home_goals) and at == str(away_goals)
-
-    def _find_card(self, match_id: str) -> Any:
-        s = self.cfg.selectors
-        for el in self.page.query_selector_all(s.card):
-            if (el.get_attribute(s.card_id_attr) or "") == match_id:
-                return el
-        # Repli sur l'identifiant synthetique (noms d'equipes).
-        for el in self.page.query_selector_all(s.card):
-            try:
-                home = self._text(el, s.home_team, "equipe domicile")
-                away = self._text(el, s.away_team, "equipe exterieur")
-            except SiteError:
-                continue
-            if f"{home}-{away}".lower().replace(" ", "_") in match_id:
-                return el
-        raise SiteError(f"carte {match_id} introuvable sur la page")
+        self._dismiss_consent()
+        cards, _ = self.read_cards()
+        actual = {c.match_id: c.existing_pick for c in cards}
+        return {mid: actual.get(mid) == score for mid, score in expected.items()}
 
     # --- diagnostic --------------------------------------------------------
-    def dump(self, name: str) -> None:
+    def dump(self, name: str) -> Path | None:
+        """Ecrit HTML + capture d'ecran + trafic JSON + diagnostics."""
         if self.capture_dir is None:
-            return
+            return None
         self.capture_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        (self.capture_dir / f"{name}-{stamp}.html").write_text(
-            self.page.content(), encoding="utf-8"
-        )
+        base = self.capture_dir / f"{name}-{stamp}"
         try:
-            self.page.screenshot(
-                path=str(self.capture_dir / f"{name}-{stamp}.png"), full_page=True
-            )
+            base.with_suffix(".html").write_text(self.page.content(), encoding="utf-8")
+            self.page.screenshot(path=str(base.with_suffix(".png")), full_page=True)
         except Exception:
             pass
-        (self.capture_dir / f"{name}-{stamp}.network.json").write_text(
-            json.dumps(self.network_log, ensure_ascii=False, indent=2), encoding="utf-8"
+        base.with_suffix(".network.json").write_text(
+            json.dumps(
+                _redact_value(self.network_log), ensure_ascii=False, indent=2
+            ),
+            encoding="utf-8",
         )
+        if self.diagnostics:
+            base.with_suffix(".diagnostic.txt").write_text(
+                "\n\n".join(d.render() for d in self.diagnostics), encoding="utf-8"
+            )
+        return base
 
 
 @contextmanager

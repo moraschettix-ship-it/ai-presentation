@@ -12,7 +12,8 @@ defaults:
     working-directory: mpp-bot
 
 jobs:
-  tests:
+  # Coeur mathematique : aucune dependance, quelques secondes.
+  unitaires:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,9 +21,30 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install --quiet PyYAML==6.0.2
-      - name: Tests unitaires
-        run: python -m unittest discover -s tests -t . -v
+      - name: Tests sans navigateur
+        run: |
+          python -m unittest \
+            tests.test_odds tests.test_poisson tests.test_strategy \
+            tests.test_schedule tests.test_state -v
       - name: La configuration se charge
         run: python -c "from mpp.config import load; load('config.yaml'); print('config.yaml OK')"
       - name: Calcul hors ligne sur la journee de reference
         run: python -m mpp plan fixtures/screenshot-j1.json --target-deviations 2
+
+  # Detection et cycle complet dans un vrai Chromium, sur deux faux sites MPP
+  # aux DOM sans rapport. C'est ce job qui protege contre une regression de
+  # l'heuristique de detection.
+  navigateur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: mpp-bot/requirements.txt
+      - run: pip install --quiet -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Tests bout en bout
+        run: python -m unittest tests.test_e2e_browser tests.test_cli_end_to_end -v

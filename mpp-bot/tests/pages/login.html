@@ -1,0 +1,9 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Connexion</title></head>
+<body>
+  <form id="f" onsubmit="event.preventDefault();
+      if (mail.value && pwd.value) { location.href = new URLSearchParams(location.search).get('to') || './dashboard.html'; }">
+    <label>Pseudo ou email <input id="mail" name="login" type="text"></label>
+    <label>Mot de passe <input id="pwd" name="password" type="password"></label>
+    <button type="submit">Se connecter</button>
+  </form>
+</body></html>

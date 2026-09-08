@@ -110,3 +110,74 @@ class TestWindows(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestResolveKickoff(unittest.TestCase):
+    """Datation d'une carte : c'est la que se joue le cas 'page consultee le
+    soir qui affiche deja les matchs du lendemain'."""
+
+    def test_explicit_date_wins(self):
+        from mpp.schedule import resolve_kickoff
+
+        now = datetime(2026, 9, 15, 21, 30, tzinfo=UTC)      # 23h30 a Paris
+        self.assertEqual(
+            resolve_kickoff("18h45", "16/09", now),
+            datetime(2026, 9, 16, 16, 45, tzinfo=UTC),
+        )
+
+    def test_explicit_date_picks_the_nearest_year(self):
+        """Un match du 31/12 lu le 1er janvier appartient a l'annee ecoulee.
+
+        Sans ce choix, le bot daterait le match du 31 decembre PROCHAIN et
+        l'ignorerait pendant un an.
+        """
+        from mpp.schedule import resolve_kickoff
+
+        self.assertEqual(
+            resolve_kickoff("21h00", "31/12", datetime(2027, 1, 1, 10, 0, tzinfo=UTC)),
+            datetime(2026, 12, 31, 20, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            resolve_kickoff("21h00", "02/01", datetime(2026, 12, 31, 10, 0, tzinfo=UTC)),
+            datetime(2027, 1, 2, 20, 0, tzinfo=UTC),
+        )
+
+    def test_without_date_recent_past_stays_today(self):
+        """Un match commence il y a deux heures reste date d'aujourd'hui, pour
+        etre correctement ecarte comme passe plutot que reporte a demain."""
+        from mpp.schedule import resolve_kickoff
+
+        now = datetime(2026, 9, 15, 21, 30, tzinfo=UTC)      # 23h30 a Paris
+        self.assertEqual(
+            resolve_kickoff("21h00", None, now),
+            datetime(2026, 9, 15, 19, 0, tzinfo=UTC),
+        )
+
+    def test_without_date_distant_past_rolls_to_tomorrow(self):
+        from mpp.schedule import resolve_kickoff
+
+        now = datetime(2026, 9, 15, 22, 0, tzinfo=UTC)       # minuit a Paris
+        self.assertEqual(
+            resolve_kickoff("12h00", None, now),
+            datetime(2026, 9, 16, 10, 0, tzinfo=UTC),
+        )
+
+    def test_without_date_future_is_today(self):
+        from mpp.schedule import resolve_kickoff
+
+        now = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)        # 10h00 a Paris
+        self.assertEqual(
+            resolve_kickoff("21h00", None, now),
+            datetime(2026, 9, 15, 19, 0, tzinfo=UTC),
+        )
+
+    def test_malformed_date_falls_back_instead_of_crashing(self):
+        from mpp.schedule import resolve_kickoff
+
+        now = datetime(2026, 9, 15, 8, 0, tzinfo=UTC)
+        for bad in ("32/13", "demain", "15-09", ""):
+            self.assertEqual(
+                resolve_kickoff("21h00", bad, now),
+                datetime(2026, 9, 15, 19, 0, tzinfo=UTC),
+                bad,
+            )

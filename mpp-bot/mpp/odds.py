@@ -28,11 +28,14 @@ from dataclasses import dataclass
 # de parsing (DOM change, valeur tronquee, pourcentage lu comme une cote...).
 COTE_MIN = 20.0
 COTE_MAX = 2000.0
-# K observe entre 31.7 et 34.1 sur l'echantillon de reference. On laisse large :
-# un K aberrant signale surtout un triplet incoherent (ex : deux cotes du meme
-# match melangees avec celles d'un autre).
-K_MIN = 10.0
-K_MAX = 200.0
+# K observe entre 31.7 et 34.1 sur l'echantillon de reference. La bande est
+# elargie a 20-80 pour absorber un eventuel changement de bareme cote MPP, mais
+# pas davantage : c'est ce test qui rejette un triplet mal capture par la
+# detection automatique. Trop large, il laisserait passer trois nombres pris au
+# hasard sur la carte (un classement lu comme une cote, par exemple) et le bot
+# pronostiquerait sur des probabilites inventees.
+K_MIN = 20.0
+K_MAX = 80.0
 
 
 class OddsError(ValueError):

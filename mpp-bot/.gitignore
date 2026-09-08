@@ -1,6 +1,7 @@
-# Les captures de `discover` contiennent le DOM complet ET les reponses JSON du
-# site, donc potentiellement des jetons de session. Jamais dans git.
-state/discovery/
+# Les captures de diagnostic contiennent le DOM complet et les reponses reseau.
+# Les valeurs sensibles sont masquees (cf mpp/site.py, redact) mais ces fichiers
+# n'ont rien a faire dans l'historique git.
+state/captures/
 *.tmp
 __pycache__/
 *.pyc

@@ -1,0 +1,66 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>Grille</title></head><body><table class="grid"><tbody>
+  <tr class="ln">
+    <td class="t">18h45</td>
+    <td class="rk">1</td><td class="nm">AEK Athens</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">LASK</td><td class="rk">16</td>
+    <td class="o">65</td><td class="o">124</td><td class="o">129</td>
+    <td class="p">70%</td><td class="p">21%</td><td class="p">8%</td>
+  </tr>
+  <tr class="ln">
+    <td class="t">18h45</td>
+    <td class="rk">9</td><td class="nm">Bruges</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">Aston Villa</td><td class="rk">3</td>
+    <td class="o">100</td><td class="o">117</td><td class="o">93</td>
+    <td class="p">15%</td><td class="p">23%</td><td class="p">62%</td>
+  </tr>
+  <tr class="ln">
+    <td class="t">21h00</td>
+    <td class="rk">27</td><td class="nm">Real Madrid</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">Inter</td><td class="rk">15</td>
+    <td class="o">62</td><td class="o">124</td><td class="o">136</td>
+    <td class="p">85%</td><td class="p">11%</td><td class="p">4%</td>
+  </tr>
+  <tr class="ln">
+    <td class="t">21h00</td>
+    <td class="rk">18</td><td class="nm">LOSC</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">Betis</td><td class="rk">26</td>
+    <td class="o">88</td><td class="o">121</td><td class="o">103</td>
+    <td class="p">63%</td><td class="p">25%</td><td class="p">13%</td>
+  </tr>
+  <tr class="ln">
+    <td class="t">21h00</td>
+    <td class="rk">8</td><td class="nm">Dortmund</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">Villarreal</td><td class="rk">36</td>
+    <td class="o">73</td><td class="o">119</td><td class="o">122</td>
+    <td class="p">81%</td><td class="p">15%</td><td class="p">4%</td>
+  </tr>
+  <tr class="ln">
+    <td class="t">21h00</td>
+    <td class="rk">11</td><td class="nm">Porto</td>
+    <td><input type="number"></td><td><input type="number"></td>
+    <td class="nm">Man City</td><td class="rk">20</td>
+    <td class="o">127</td><td class="o">124</td><td class="o">67</td>
+    <td class="p">7%</td><td class="p">12%</td><td class="p">81%</td>
+  </tr>
+</tbody></table><button id="save">Enregistrer mes pronos</button>
+<script>
+(function () {
+  const KEY = 'mpp-fake-store';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
+  const save = (s) => localStorage.setItem(KEY, JSON.stringify(s));
+  const inputs = Array.from(document.querySelectorAll('input'));
+  const state = load();
+  inputs.forEach((el, i) => {
+    if (state[i] !== undefined) el.value = state[i];
+    el.addEventListener('change', () => { const s = load(); s[i] = el.value; save(s); });
+    el.addEventListener('input',  () => { const s = load(); s[i] = el.value; save(s); });
+  });
+})();
+</script>
+</body></html>

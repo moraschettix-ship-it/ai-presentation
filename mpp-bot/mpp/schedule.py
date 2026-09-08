@@ -35,6 +35,13 @@ from .models import Card
 SITE_TZ = ZoneInfo("Europe/Paris")
 
 _TIME_RE = re.compile(r"^\s*(\d{1,2})\s*[hH:]\s*(\d{2})?\s*$")
+_DATE_RE = re.compile(r"^\s*(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\s*$")
+
+# Tolerance avant de considerer qu'une heure affichee concerne le lendemain.
+# Un match affiche a 18h45 alors qu'il est 23h00 est celui de demain ; un match
+# affiche a 21h00 alors qu'il est 22h30 est celui d'il y a une heure et demie,
+# et doit rester date d'aujourd'hui pour etre correctement ecarte comme passe.
+PAST_GRACE_HOURS = 6
 
 
 class ScheduleError(ValueError):
@@ -69,6 +76,51 @@ def parse_site_time(day: date, hhmm: str, tz: ZoneInfo = SITE_TZ) -> datetime:
         raise ScheduleError(f"heure hors bornes : {hhmm!r}")
     local = datetime(day.year, day.month, day.day, hour, minute, tzinfo=tz)
     return local.astimezone(timezone.utc)
+
+
+def resolve_kickoff(
+    time_text: str,
+    date_text: str | None,
+    now: datetime,
+    tz: ZoneInfo = SITE_TZ,
+) -> datetime:
+    """Datetime UTC d'un coup d'envoi, a partir de ce qui est affiche.
+
+    Trois cas, du plus sur au moins sur :
+
+    1. La carte affiche une date ("15/09") : on l'utilise. L'annee n'etant
+       presque jamais affichee, on choisit celle qui place le match au plus
+       pres de maintenant - sinon un match du 3 janvier lu le 28 decembre
+       serait date de l'annee ecoulee.
+    2. Pas de date, et l'heure tombe dans le futur ou le passe recent : c'est
+       aujourd'hui.
+    3. Pas de date, et l'heure est passee depuis plus de PAST_GRACE_HOURS :
+       c'est le match de demain. Sans cette regle, une page consultee le soir
+       daterait les matchs du lendemain de la veille, et le bot les ignorerait.
+    """
+    local_now = now.astimezone(tz)
+
+    if date_text:
+        m = _DATE_RE.match(date_text)
+        if m:
+            day, month = int(m.group(1)), int(m.group(2))
+            if m.group(3):
+                year = int(m.group(3))
+                year += 2000 if year < 100 else 0
+                return parse_site_time(date(year, month, day), time_text, tz)
+            candidates = []
+            for year in (local_now.year - 1, local_now.year, local_now.year + 1):
+                try:
+                    candidates.append(parse_site_time(date(year, month, day), time_text, tz))
+                except ValueError:
+                    continue    # 29 fevrier hors annee bissextile
+            if candidates:
+                return min(candidates, key=lambda d: abs((d - now).total_seconds()))
+
+    today = parse_site_time(local_now.date(), time_text, tz)
+    if today < now - timedelta(hours=PAST_GRACE_HOURS):
+        return parse_site_time(local_now.date() + timedelta(days=1), time_text, tz)
+    return today
 
 
 def to_site_local(dt: datetime, tz: ZoneInfo = SITE_TZ) -> datetime:

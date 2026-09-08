@@ -1,0 +1,59 @@
+name: MPP - diagnostic
+
+# A lancer a la main quand quelque chose cloche, ou une premiere fois pour
+# verifier que la connexion et la lecture fonctionnent. N'ECRIT RIEN sur MPP.
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: mpp-bot
+
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: mpp-bot/requirements.txt
+
+      - run: pip install --quiet -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
+
+      - name: Diagnostic
+        id: doc
+        env:
+          MPP_EMAIL: ${{ secrets.MPP_EMAIL }}
+          MPP_PASSWORD: ${{ secrets.MPP_PASSWORD }}
+        run: |
+          set +e
+          python -m mpp doctor 2>&1 | tee doctor.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Joindre les captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpp-doctor-${{ github.run_id }}
+          path: mpp-bot/state/captures/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Resume
+        if: always()
+        run: |
+          {
+            echo "### Diagnostic"
+            echo ""
+            echo '```'
+            cat doctor.log 2>/dev/null || echo "(pas de sortie)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - if: always()
+        run: exit ${{ steps.doc.outputs.code }}
